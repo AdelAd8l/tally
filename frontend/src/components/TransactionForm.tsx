@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { api, type Kind, type Transaction } from '../lib/api'
 import { centsToInput, parseAmount, todayISO } from '../lib/format'
 import { useAccounts, useCategories, useRefreshMoney, useUser } from '../lib/hooks'
+import { displayName, t } from '../lib/i18n'
 import Modal from './Modal'
 
 interface Props {
@@ -33,7 +34,7 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
   const save = useMutation({
     mutationFn: () => {
       const cents = parseAmount(amount)
-      if (!cents) throw new Error('Enter an amount greater than zero, like 12.50')
+      if (!cents) throw new Error(t('tx.amountError'))
       return api.saveTransaction(
         {
           kind,
@@ -69,9 +70,9 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
   }
 
   return (
-    <Modal title={editing ? 'Edit transaction' : 'New transaction'} open={open} onClose={onClose}>
+    <Modal title={editing ? t('tx.edit') : t('tx.new')} open={open} onClose={onClose}>
       <form className="stack" onSubmit={submit}>
-        <div className="segmented segmented-full" role="group" aria-label="Type">
+        <div className="segmented segmented-full" role="group" aria-label={t('common.type')}>
           {(['expense', 'income'] as const).map((k) => (
             <button
               key={k}
@@ -82,16 +83,17 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
                 setCategoryId('')
               }}
             >
-              {k === 'expense' ? 'Expense' : 'Income'}
+              {k === 'expense' ? t('common.expense') : t('common.income')}
             </button>
           ))}
         </div>
 
         <label className="amount-field">
-          <span className="visually-hidden">Amount</span>
+          <span className="visually-hidden">{t('tx.amount')}</span>
           <span className="amount-currency faint">{currency}</span>
           <input
             className="amount-input num"
+            dir="ltr"
             inputMode="decimal"
             autoComplete="off"
             placeholder="0.00"
@@ -103,24 +105,24 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
 
         <div className="grid-2">
           <label className="field">
-            <span>Category</span>
+            <span>{t('common.category')}</span>
             <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              <option value="">Uncategorized</option>
+              <option value="">{t('common.uncategorized')}</option>
               {choices.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {displayName(c.name)}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
-            <span>Date</span>
+            <span>{t('common.date')}</span>
             <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
           </label>
         </div>
 
         <label className="field">
-          <span>Account</span>
+          <span>{t('common.account')}</span>
           <select
             className="select"
             value={accountId || String(accounts[0]?.id ?? '')}
@@ -128,17 +130,17 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.name}
+                {displayName(a.name)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="field">
-          <span>Note</span>
+          <span>{t('common.note')}</span>
           <input
             className="input"
-            placeholder={kind === 'expense' ? 'What was it for?' : 'Where did it come from?'}
+            placeholder={kind === 'expense' ? t('tx.notePlaceholderExpense') : t('tx.notePlaceholderIncome')}
             maxLength={200}
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -152,18 +154,18 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
             <button
               type="button"
               className="btn btn-danger"
-              onClick={() => confirm('Delete this transaction?') && remove.mutate()}
+              onClick={() => confirm(t('tx.confirmDelete')) && remove.mutate()}
               disabled={remove.isPending}
             >
-              Delete
+              {t('common.delete')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button type="submit" className="btn btn-primary" disabled={save.isPending}>
-            {save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Add transaction'}
+            {save.isPending ? t('tx.saving') : editing ? t('tx.saveChanges') : t('tx.add')}
           </button>
         </footer>
       </form>

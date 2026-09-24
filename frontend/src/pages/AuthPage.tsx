@@ -5,6 +5,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import { api } from '../lib/api'
 import { CURRENCIES, currencyLabel, guessCurrency } from '../lib/format'
+import { displayName, setLang, t, useLang } from '../lib/i18n'
+import { LanguageSwitch } from './Settings'
 
 const RECEIPT = [
   ['Rent', '1,450.00'],
@@ -22,6 +24,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const [password, setPassword] = useState('')
   const [currency, setCurrency] = useState(guessCurrency)
   const signup = mode === 'signup'
+  const lang = useLang()
 
   const health = useQuery({
     queryKey: ['health'],
@@ -55,19 +58,18 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <div className="auth">
       <div className="auth-form-col">
-        <Logo size={26} />
+        <div className="auth-top">
+          <Logo size={26} />
+          <LanguageSwitch value={lang} onChange={setLang} />
+        </div>
         <div className="auth-form-wrap">
-          <h1>{signup ? 'Start keeping tally' : 'Welcome back'}</h1>
-          <p className="muted auth-lede">
-            {signup
-              ? 'A quiet place to see where your money goes. Free, private, no bank login needed.'
-              : 'Sign in to pick up where you left off.'}
-          </p>
+          <h1>{signup ? t('auth.signupTitle') : t('auth.loginTitle')}</h1>
+          <p className="muted auth-lede">{signup ? t('auth.signupLede') : t('auth.loginLede')}</p>
 
           <form className="stack" onSubmit={onSubmit}>
             {signup && (
               <label className="field">
-                <span>Name</span>
+                <span>{t('common.name')}</span>
                 <input
                   className="input"
                   autoComplete="name"
@@ -78,9 +80,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               </label>
             )}
             <label className="field">
-              <span>Email</span>
+              <span>{t('common.email')}</span>
               <input
                 className="input"
+                dir="ltr"
                 type="email"
                 autoComplete="email"
                 value={email}
@@ -89,9 +92,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               />
             </label>
             <label className="field">
-              <span>Password</span>
+              <span>{t('common.password')}</span>
               <input
                 className="input"
+                dir="ltr"
                 type="password"
                 autoComplete={signup ? 'new-password' : 'current-password'}
                 minLength={signup ? 8 : undefined}
@@ -102,7 +106,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             </label>
             {signup && (
               <label className="field">
-                <span>Currency</span>
+                <span>{t('common.currency')}</span>
                 <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
                   {CURRENCIES.map((c) => (
                     <option key={c} value={c}>
@@ -114,11 +118,11 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             )}
             {submit.error && <p className="form-error">{submit.error.message}</p>}
             <button className="btn btn-primary btn-block" disabled={submit.isPending}>
-              {submit.isPending ? 'One moment…' : signup ? 'Create account' : 'Sign in'}
+              {submit.isPending ? t('auth.wait') : signup ? t('auth.create') : t('auth.signIn')}
             </button>
             {demo && (
               <button type="button" className="btn btn-block" onClick={() => submit.mutate(demo)}>
-                Look around with the demo account
+                {t('auth.demo')}
               </button>
             )}
           </form>
@@ -126,11 +130,11 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
           <p className="auth-switch muted">
             {signup ? (
               <>
-                Already have an account? <Link to="/login">Sign in</Link>
+                {t('auth.haveAccount')} <Link to="/login">{t('auth.signIn')}</Link>
               </>
             ) : signupOpen ? (
               <>
-                New here? <Link to="/signup">Create an account</Link>
+                {t('auth.newHere')} <Link to="/signup">{t('auth.createLink')}</Link>
               </>
             ) : null}
           </p>
@@ -140,24 +144,24 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
       <aside className="auth-art" aria-hidden="true">
         <div className="receipt">
           <div className="receipt-head">
-            <span>September</span>
+            <span>{t('auth.receiptMonth')}</span>
             <span className="num">2026</span>
           </div>
           <ul>
             {RECEIPT.map(([label, value]) => (
               <li key={label}>
-                <span>{label}</span>
+                <span>{displayName(label)}</span>
                 <span className="leader" />
                 <span className="num">{value}</span>
               </li>
             ))}
           </ul>
           <div className="receipt-total">
-            <span>Spent</span>
+            <span>{t('auth.receiptSpent')}</span>
             <span className="num">2,232.25</span>
           </div>
           <div className="receipt-total receipt-saved">
-            <span>Saved</span>
+            <span>{t('auth.receiptSaved')}</span>
             <span className="num">+1,067.75</span>
           </div>
           <svg className="receipt-tally" viewBox="0 0 120 40">
@@ -167,7 +171,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             </g>
           </svg>
         </div>
-        <p className="auth-quote">Every dollar, accounted for.</p>
+        <p className="auth-quote">{t('auth.quote')}</p>
       </aside>
     </div>
   )

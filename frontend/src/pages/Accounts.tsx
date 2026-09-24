@@ -7,12 +7,13 @@ import PageHeader from '../components/PageHeader'
 import { api, type Account, type AccountKind } from '../lib/api'
 import { centsToInput } from '../lib/format'
 import { useAccounts, useRefreshMoney } from '../lib/hooks'
+import { displayName, t, type Key } from '../lib/i18n'
 
-const KINDS: Record<AccountKind, string> = {
-  checking: 'Checking',
-  savings: 'Savings',
-  cash: 'Cash',
-  credit: 'Credit card',
+const KINDS: Record<AccountKind, Key> = {
+  checking: 'accounts.kind.checking',
+  savings: 'accounts.kind.savings',
+  cash: 'accounts.kind.cash',
+  credit: 'accounts.kind.credit',
 }
 
 export default function Accounts() {
@@ -22,9 +23,9 @@ export default function Accounts() {
 
   return (
     <div className="page page-narrow">
-      <PageHeader title="Accounts">
+      <PageHeader title={t('nav.accounts')}>
         <button className="btn btn-primary" onClick={() => setEditing('new')}>
-          Add account
+          {t('accounts.add')}
         </button>
       </PageHeader>
 
@@ -34,8 +35,8 @@ export default function Accounts() {
             <li key={a.id}>
               <button className="ledger-row" onClick={() => setEditing(a)}>
                 <span>
-                  <strong>{a.name}</strong>
-                  <span className="faint ledger-sub">{KINDS[a.kind]}</span>
+                  <strong>{displayName(a.name)}</strong>
+                  <span className="faint ledger-sub">{t(KINDS[a.kind])}</span>
                 </span>
                 <Money cents={a.balance} className={a.balance < 0 ? 'danger-text' : ''} />
               </button>
@@ -43,13 +44,11 @@ export default function Accounts() {
           ))}
         </ul>
         <div className="ledger-total">
-          <span>Total</span>
+          <span>{t('common.total')}</span>
           <Money cents={total} />
         </div>
       </div>
-      <p className="faint hint">
-        Balances are the opening balance plus every income minus every expense recorded against the account.
-      </p>
+      <p className="faint hint">{t('accounts.hint')}</p>
 
       <AccountDialog editing={editing} onClose={() => setEditing(null)} />
     </div>
@@ -75,7 +74,7 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
   const save = useMutation({
     mutationFn: () => {
       const value = opening.trim() === '' ? 0 : Math.round(Number(opening.replace(/,/g, '')) * 100)
-      if (Number.isNaN(value)) throw new Error('Opening balance must be a number')
+      if (Number.isNaN(value)) throw new Error(t('accounts.openingError'))
       return api.saveAccount({ name, kind, opening_balance: value }, existing?.id)
     },
     onSuccess: async () => {
@@ -94,7 +93,7 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
 
   return (
     <Modal
-      title={existing ? 'Edit account' : 'New account'}
+      title={existing ? t('accounts.edit') : t('accounts.new')}
       open={editing !== null}
       onClose={() => {
         save.reset()
@@ -111,24 +110,25 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
         }}
       >
         <label className="field">
-          <span>Name</span>
+          <span>{t('common.name')}</span>
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <div className="grid-2">
           <label className="field">
-            <span>Type</span>
+            <span>{t('common.type')}</span>
             <select className="select" value={kind} onChange={(e) => setKind(e.target.value as AccountKind)}>
               {Object.entries(KINDS).map(([value, label]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(label)}
                 </option>
               ))}
             </select>
           </label>
           <label className="field">
-            <span>Opening balance</span>
+            <span>{t('accounts.opening')}</span>
             <input
               className="input input-amount"
+              dir="ltr"
               inputMode="decimal"
               placeholder="0.00"
               value={opening}
@@ -142,17 +142,19 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
             <button
               type="button"
               className="btn btn-danger"
-              onClick={() => confirm(`Delete ${existing.name}?`) && remove.mutate()}
+              onClick={() =>
+                confirm(t('accounts.confirmDelete', { name: displayName(existing.name) })) && remove.mutate()
+              }
             >
-              Delete
+              {t('common.delete')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className="btn btn-primary" disabled={save.isPending}>
-            Save
+            {t('common.save')}
           </button>
         </footer>
       </form>

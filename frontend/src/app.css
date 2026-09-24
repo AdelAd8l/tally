@@ -17,7 +17,7 @@
   flex-direction: column;
   height: 100vh;
   padding: 22px 14px 14px;
-  border-right: 1px solid var(--rule);
+  border-inline-end: 1px solid var(--rule);
 }
 
 .sidebar-top {
@@ -41,7 +41,7 @@
 }
 
 .new-btn kbd {
-  margin-left: auto;
+  margin-inline-start: auto;
   padding: 0 5px;
   border: 1px solid color-mix(in srgb, var(--accent-ink) 35%, transparent);
   border-radius: 4px;
@@ -84,11 +84,12 @@
 .nav-link.active::before {
   content: '';
   position: absolute;
-  left: -14px;
+  inset-inline-start: -14px;
   top: 9px;
   bottom: 9px;
   width: 2px;
-  border-radius: 0 2px 2px 0;
+  border-start-end-radius: 2px;
+  border-end-end-radius: 2px;
   background: var(--accent);
 }
 
@@ -280,11 +281,11 @@ code {
 }
 
 .figure + .figure {
-  border-left: 1px solid var(--rule);
+  border-inline-start: 1px solid var(--rule);
 }
 
 .figure:first-child {
-  padding-left: 0;
+  padding-inline-start: 0;
 }
 
 .figure-label {
@@ -351,7 +352,7 @@ code {
 }
 
 .trend-readout b {
-  margin-left: 2px;
+  margin-inline-start: 2px;
   color: var(--ink);
   font-weight: 500;
 }
@@ -360,7 +361,7 @@ code {
   display: inline-block;
   width: 9px;
   height: 9px;
-  margin-right: 3px;
+  margin-inline-end: 3px;
   border-radius: 2px;
   vertical-align: -0.02em;
 }
@@ -375,6 +376,8 @@ code {
 
 .trend-svg {
   display: block;
+  /* Time runs left to right in both languages; keeps tick labels anchored correctly. */
+  direction: ltr;
   /* Width follows the container; the viewBox is re-measured to match, so text never scales. */
   width: 100%;
   overflow: visible;
@@ -441,7 +444,7 @@ code {
 }
 
 .breakdown-line .num:last-child {
-  text-align: right;
+  text-align: end;
 }
 
 .breakdown-name {
@@ -497,13 +500,13 @@ code {
 
 .search svg {
   position: absolute;
-  left: 11px;
+  inset-inline-start: 11px;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .search .input {
-  padding-left: 34px;
+  padding-inline-start: 34px;
 }
 
 .select-auto {
@@ -579,7 +582,7 @@ code {
   border: 0;
   border-bottom: 1px solid var(--rule);
   background: none;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -619,7 +622,7 @@ code {
 }
 
 .tx-amount {
-  text-align: right;
+  text-align: end;
   font-size: 0.95rem;
 }
 
@@ -671,7 +674,7 @@ code {
   border: 0;
   border-radius: var(--radius);
   background: none;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -709,6 +712,7 @@ code {
 
 .meter-today {
   position: absolute;
+  margin-inline-start: -0.75px;
   top: -4px;
   bottom: -4px;
   width: 1.5px;
@@ -735,7 +739,7 @@ code {
   border: 0;
   border-radius: var(--radius);
   background: none;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -753,7 +757,7 @@ code {
 }
 
 .ledger-sub {
-  margin-left: 10px;
+  margin-inline-start: 10px;
   font-size: 0.85rem;
 }
 
@@ -905,6 +909,8 @@ code {
 }
 
 .amount-field {
+  /* Currency code then number, left to right, in both languages. */
+  direction: ltr;
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -949,6 +955,13 @@ code {
   padding: 32px 40px;
 }
 
+.auth-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .auth-form-wrap {
   width: 100%;
   max-width: 360px;
@@ -976,7 +989,7 @@ code {
   justify-content: center;
   gap: 28px;
   padding: 40px;
-  border-left: 1px solid var(--rule);
+  border-inline-start: 1px solid var(--rule);
   background: var(--accent);
   color: var(--accent-ink);
 }
@@ -1054,8 +1067,8 @@ code {
   }
 
   .figure:nth-child(3) {
-    padding-left: 0;
-    border-left: 0;
+    padding-inline-start: 0;
+    border-inline-start: 0;
   }
 
   .figure:nth-child(n + 3) {
@@ -1084,7 +1097,7 @@ code {
     /* Clear the notch / status bar when installed to the home screen. */
     padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0
       calc(16px + env(safe-area-inset-left));
-    border-right: 0;
+    border-inline-end: 0;
     border-bottom: 1px solid var(--rule);
     background: var(--paper);
   }
@@ -1127,7 +1140,7 @@ code {
 
   .fab {
     position: fixed;
-    right: calc(18px + env(safe-area-inset-right));
+    inset-inline-end: calc(18px + env(safe-area-inset-right));
     bottom: calc(22px + env(safe-area-inset-bottom));
     z-index: 6;
     display: inline-flex;
@@ -1142,8 +1155,8 @@ code {
   }
 
   .figures-3 .figure {
-    padding-left: 0;
-    border-left: 0;
+    padding-inline-start: 0;
+    border-inline-start: 0;
   }
 
   .figures-3 .figure + .figure {
@@ -1151,15 +1164,16 @@ code {
   }
 
   .figure {
-    padding: 14px 14px 14px 0;
+    padding-block: 14px;
+    padding-inline: 0 14px;
   }
 
   .figure + .figure {
-    padding-left: 14px;
+    padding-inline-start: 14px;
   }
 
   .figures:not(.figures-3) .figure:nth-child(odd) {
-    padding-left: 0;
+    padding-inline-start: 0;
   }
 
   .figure-value {

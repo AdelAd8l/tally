@@ -1,5 +1,7 @@
 // Typed client for the Tally API. All amounts are integer cents.
 
+import { serverError } from './i18n'
+
 export type Kind = 'expense' | 'income'
 export type AccountKind = 'checking' | 'savings' | 'cash' | 'credit'
 
@@ -68,7 +70,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
     } catch {
       /* not JSON */
     }
-    throw new ApiError(res.status, message)
+    throw new ApiError(res.status, serverError(message))
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>

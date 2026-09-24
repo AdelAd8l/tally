@@ -5,17 +5,18 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { api, type Kind, type Transaction, type User } from '../lib/api'
 import { currentMonth } from '../lib/format'
 import { ComposerContext, MonthContext } from '../lib/hooks'
+import { t, type Key } from '../lib/i18n'
 import Icon, { type IconName } from './Icon'
 import Logo from './Logo'
 import TransactionForm from './TransactionForm'
 
-const NAV: { to: string; label: string; icon: IconName }[] = [
-  { to: '/', label: 'Overview', icon: 'overview' },
-  { to: '/transactions', label: 'Transactions', icon: 'list' },
-  { to: '/budgets', label: 'Budgets', icon: 'target' },
-  { to: '/accounts', label: 'Accounts', icon: 'wallet' },
-  { to: '/categories', label: 'Categories', icon: 'tag' },
-  { to: '/settings', label: 'Settings', icon: 'gear' },
+const NAV: { to: string; label: Key; icon: IconName }[] = [
+  { to: '/', label: 'nav.overview', icon: 'overview' },
+  { to: '/transactions', label: 'nav.transactions', icon: 'list' },
+  { to: '/budgets', label: 'nav.budgets', icon: 'target' },
+  { to: '/accounts', label: 'nav.accounts', icon: 'wallet' },
+  { to: '/categories', label: 'nav.categories', icon: 'tag' },
+  { to: '/settings', label: 'nav.settings', icon: 'gear' },
 ]
 
 export default function Layout({ user }: { user: User }) {
@@ -28,11 +29,12 @@ export default function Layout({ user }: { user: User }) {
     setComposer({ ...preset, key: Date.now() })
   }, [])
 
-  // "n" anywhere (outside a text field) starts a new transaction.
+  // "N" anywhere (outside a text field) starts a new transaction. e.code is the physical key,
+  // so it also works with an Arabic keyboard layout.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      if (e.key !== 'n' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.code !== 'KeyN' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return
       if (target.closest('input, textarea, select, [contenteditable], dialog')) return
       e.preventDefault()
       openComposer()
@@ -57,15 +59,15 @@ export default function Layout({ user }: { user: User }) {
               <Logo />
               <button className="btn btn-primary new-btn" onClick={() => openComposer()}>
                 <Icon name="plus" size={16} />
-                New transaction
+                {t('shell.new')}
                 <kbd>N</kbd>
               </button>
             </div>
-            <nav className="nav" aria-label="Main">
+            <nav className="nav" aria-label={t('nav.main')}>
               {NAV.map((item) => (
                 <NavLink key={item.to} to={item.to} end={item.to === '/'} className="nav-link">
                   <Icon name={item.icon} />
-                  <span>{item.label}</span>
+                  <span>{t(item.label)}</span>
                 </NavLink>
               ))}
             </nav>
@@ -77,8 +79,13 @@ export default function Layout({ user }: { user: User }) {
                 <strong>{user.name}</strong>
                 <span className="faint">{user.email}</span>
               </div>
-              <button className="btn btn-quiet icon-btn" onClick={signOut} aria-label="Sign out" title="Sign out">
-                <Icon name="logout" />
+              <button
+                className="btn btn-quiet icon-btn"
+                onClick={signOut}
+                aria-label={t('shell.signOut')}
+                title={t('shell.signOut')}
+              >
+                <Icon name="logout" flip />
               </button>
             </div>
           </aside>
@@ -87,7 +94,7 @@ export default function Layout({ user }: { user: User }) {
             <Outlet />
           </main>
 
-          <button className="fab btn btn-primary" onClick={() => openComposer()} aria-label="New transaction">
+          <button className="fab btn btn-primary" onClick={() => openComposer()} aria-label={t('shell.new')}>
             <Icon name="plus" size={22} />
           </button>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 
+import { t } from '../lib/i18n'
 import Icon from './Icon'
 
 interface Props {
@@ -38,7 +39,7 @@ export default function Modal({ title, open, onClose, children, width = 440 }: P
         <div className="modal-body">
           <header className="modal-head">
             <h3 id="modal-title">{title}</h3>
-            <button type="button" className="btn btn-quiet icon-btn" onClick={onClose} aria-label="Close">
+            <button type="button" className="btn btn-quiet icon-btn" onClick={onClose} aria-label={t('common.close')}>
               <Icon name="x" />
             </button>
           </header>

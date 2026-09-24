@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader'
 import { api } from '../lib/api'
 import { CURRENCIES, currencyLabel } from '../lib/format'
 import { useUser } from '../lib/hooks'
+import { setLang, t, useLang, type Lang } from '../lib/i18n'
 
 export default function Settings() {
   const user = useUser()
@@ -15,6 +16,7 @@ export default function Settings() {
   const [currency, setCurrency] = useState(user.currency)
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
+  const lang = useLang()
 
   const profile = useMutation({
     mutationFn: () => api.updateMe({ name, currency }),
@@ -38,12 +40,22 @@ export default function Settings() {
 
   return (
     <div className="page page-narrow">
-      <PageHeader title="Settings" />
+      <PageHeader title={t('nav.settings')} />
 
       <section className="settings-section">
         <div className="settings-intro">
-          <h3>Profile</h3>
-          <p className="muted">How Tally greets you and formats money.</p>
+          <h3>{t('common.language')}</h3>
+          <p className="muted">{t('settings.languageHint')}</p>
+        </div>
+        <div className="panel panel-pad">
+          <LanguageSwitch value={lang} onChange={setLang} />
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-intro">
+          <h3>{t('settings.profile')}</h3>
+          <p className="muted">{t('settings.profileHint')}</p>
         </div>
         <form
           className="stack panel panel-pad"
@@ -53,15 +65,15 @@ export default function Settings() {
           }}
         >
           <label className="field">
-            <span>Name</span>
+            <span>{t('common.name')}</span>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
           <label className="field">
-            <span>Email</span>
-            <input className="input" value={user.email} disabled />
+            <span>{t('common.email')}</span>
+            <input className="input" dir="ltr" value={user.email} disabled />
           </label>
           <label className="field">
-            <span>Currency</span>
+            <span>{t('common.currency')}</span>
             <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[...new Set([user.currency, ...CURRENCIES])].map((c) => (
                 <option key={c} value={c}>
@@ -71,10 +83,10 @@ export default function Settings() {
             </select>
           </label>
           <div className="form-foot">
-            {profile.isSuccess && <span className="faint">Saved</span>}
+            {profile.isSuccess && <span className="faint">{t('settings.saved')}</span>}
             {profile.error && <span className="danger-text">{profile.error.message}</span>}
             <button className="btn btn-primary" disabled={profile.isPending}>
-              Save profile
+              {t('settings.saveProfile')}
             </button>
           </div>
         </form>
@@ -82,8 +94,8 @@ export default function Settings() {
 
       <section className="settings-section">
         <div className="settings-intro">
-          <h3>Password</h3>
-          <p className="muted">At least 8 characters.</p>
+          <h3>{t('settings.password')}</h3>
+          <p className="muted">{t('settings.passwordHint')}</p>
         </div>
         <form
           className="stack panel panel-pad"
@@ -93,7 +105,7 @@ export default function Settings() {
           }}
         >
           <label className="field">
-            <span>Current password</span>
+            <span>{t('settings.current')}</span>
             <input
               className="input"
               type="password"
@@ -104,7 +116,7 @@ export default function Settings() {
             />
           </label>
           <label className="field">
-            <span>New password</span>
+            <span>{t('settings.newPassword')}</span>
             <input
               className="input"
               type="password"
@@ -116,10 +128,10 @@ export default function Settings() {
             />
           </label>
           <div className="form-foot">
-            {password.isSuccess && <span className="faint">Password changed</span>}
+            {password.isSuccess && <span className="faint">{t('settings.passwordChanged')}</span>}
             {password.error && <span className="danger-text">{password.error.message}</span>}
             <button className="btn" disabled={password.isPending}>
-              Change password
+              {t('settings.changePassword')}
             </button>
           </div>
         </form>
@@ -127,18 +139,31 @@ export default function Settings() {
 
       <section className="settings-section">
         <div className="settings-intro">
-          <h3>Delete account</h3>
-          <p className="muted">Removes your account and every transaction. This can't be undone.</p>
+          <h3>{t('settings.delete')}</h3>
+          <p className="muted">{t('settings.deleteHint')}</p>
         </div>
         <div className="panel panel-pad form-foot">
           <button
             className="btn btn-danger"
-            onClick={() => confirm('Delete your account and all of its data?') && remove.mutate()}
+            onClick={() => confirm(t('settings.confirmDelete')) && remove.mutate()}
           >
-            Delete my account
+            {t('settings.deleteBtn')}
           </button>
         </div>
       </section>
+    </div>
+  )
+}
+
+export function LanguageSwitch({ value, onChange }: { value: Lang; onChange: (lang: Lang) => void }) {
+  return (
+    <div className="segmented" role="group" aria-label={t('common.language')}>
+      <button type="button" aria-pressed={value === 'en'} onClick={() => onChange('en')} lang="en">
+        English
+      </button>
+      <button type="button" aria-pressed={value === 'ar'} onClick={() => onChange('ar')} lang="ar">
+        العربية
+      </button>
     </div>
   )
 }

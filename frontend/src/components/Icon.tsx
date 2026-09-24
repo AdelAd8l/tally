@@ -18,9 +18,11 @@ const paths = {
 
 export type IconName = keyof typeof paths
 
-export default function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+/** `flip` mirrors directional icons (arrows, chevrons) in right-to-left layouts. */
+export default function Icon({ name, size = 18, flip = false }: { name: IconName; size?: number; flip?: boolean }) {
   return (
     <svg
+      className={flip ? 'flip-rtl' : undefined}
       width={size}
       height={size}
       viewBox="0 0 24 24"

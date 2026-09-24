@@ -6,8 +6,10 @@ import MonthPicker from '../components/MonthPicker'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
 import { api, type Budget } from '../lib/api'
+import type { Key } from '../lib/i18n'
 import { centsToInput, currentMonth, monthBounds, monthName, parseAmount, todayISO } from '../lib/format'
 import { useCategories, useMonth, useRefreshMoney } from '../lib/hooks'
+import { displayName, t } from '../lib/i18n'
 
 export default function Budgets() {
   const { month } = useMonth()
@@ -27,36 +29,42 @@ export default function Budgets() {
 
   return (
     <div className="page">
-      <PageHeader title="Budgets">
+      <PageHeader title={t('nav.budgets')}>
         <MonthPicker />
         <button className="btn btn-primary" onClick={() => setEditing('new')} disabled={!unbudgeted.length}>
-          Add budget
+          {t('budgets.add')}
         </button>
       </PageHeader>
 
       {rows.length > 0 && (
         <section className="figures figures-3">
           <div className="figure">
-            <span className="figure-label">Budgeted</span>
+            <span className="figure-label">{t('budgets.budgeted')}</span>
             <span className="figure-value">
               <Money cents={budgeted} />
             </span>
-            <span className="figure-note">{rows.length} categories</span>
+            <span className="figure-note">{t('budgets.categoriesN', { n: rows.length })}</span>
           </div>
           <div className="figure">
-            <span className="figure-label">Spent</span>
+            <span className="figure-label">{t('budgets.spent')}</span>
             <span className="figure-value">
               <Money cents={spent} />
             </span>
-            <span className="figure-note">{Math.round((spent / budgeted) * 100)}% of budget</span>
+            <span className="figure-note">
+              {t('budgets.pctOfBudget', { pct: Math.round((spent / budgeted) * 100) })}
+            </span>
           </div>
           <div className="figure">
-            <span className="figure-label">{budgeted - spent >= 0 ? 'Left to spend' : 'Over budget'}</span>
+            <span className="figure-label">
+              {budgeted - spent >= 0 ? t('budgets.left') : t('budgets.overBudget')}
+            </span>
             <span className="figure-value">
               <Money cents={Math.abs(budgeted - spent)} className={budgeted - spent < 0 ? 'danger-text' : ''} />
             </span>
             <span className="figure-note">
-              {isCurrent ? `${days - dayOfMonth} days left in ${monthName(month, 'short')}` : 'Month closed'}
+              {isCurrent
+                ? t('budgets.daysLeft', { n: days - dayOfMonth, month: monthName(month, 'short') })
+                : t('budgets.closed')}
             </span>
           </div>
         </section>
@@ -64,14 +72,11 @@ export default function Budgets() {
 
       {budgets.data && rows.length === 0 && (
         <div className="empty">
-          <h3>No budgets yet</h3>
-          <p className="muted">
-            Pick the categories you want to keep an eye on and give each a monthly limit. Budgets repeat every
-            month.
-          </p>
+          <h3>{t('budgets.emptyTitle')}</h3>
+          <p className="muted">{t('budgets.emptyBody')}</p>
           <div className="empty-actions">
             <button className="btn btn-primary" onClick={() => setEditing('new')}>
-              Create a budget
+              {t('budgets.create')}
             </button>
           </div>
         </div>
@@ -90,33 +95,37 @@ export default function Budgets() {
                   <div className="budget-row-top">
                     <span className="budget-name">
                       <span className="swatch" style={{ background: cat?.color }} />
-                      {cat?.name ?? 'Deleted category'}
+                      {cat ? displayName(cat.name) : t('budgets.deleted')}
                     </span>
                     <span className="budget-figures">
                       <Money cents={b.spent} className={pct > 1 ? 'danger-text' : ''} />
-                      <span className="faint"> of </span>
+                      <span className="faint"> {t('budgets.of')} </span>
                       <Money cents={b.amount} />
                     </span>
                   </div>
                   <div className={`meter meter-lg ${state}`}>
                     <span style={{ width: `${Math.min(pct, 1) * 100}%` }} />
-                    {isCurrent && <i className="meter-today" style={{ left: `${elapsed * 100}%` }} title="Today" />}
+                    {isCurrent && (
+                      <i
+                        className="meter-today"
+                        style={{ insetInlineStart: `${elapsed * 100}%` }}
+                        title={t('budgets.today')}
+                      />
+                    )}
                   </div>
                   <div className="budget-row-bottom faint">
                     <span>
                       {pct > 1 ? (
                         <span className="danger-text">
-                          <Money cents={b.spent - b.amount} /> over
+                          <Amounted k="budgets.over" cents={b.spent - b.amount} />
                         </span>
                       ) : (
-                        <>
-                          <Money cents={b.amount - b.spent} /> left
-                        </>
+                        <Amounted k="budgets.leftAmount" cents={b.amount - b.spent} />
                       )}
                     </span>
                     {projected !== null && pct <= 1 && (
                       <span className={projected > b.amount ? 'warn-text' : ''}>
-                        On pace for <Money cents={projected} whole />
+                        <Amounted k="budgets.onPace" cents={projected} whole />
                       </span>
                     )}
                   </div>
@@ -162,7 +171,7 @@ function BudgetDialog({ editing, options, onClose }: DialogProps) {
     mutationFn: () => {
       const cents = parseAmount(amount)
       const cat = Number(categoryId || options[0]?.id)
-      if (!cents) throw new Error('Enter a monthly amount, like 300')
+      if (!cents) throw new Error(t('budgets.amountError'))
       return api.saveBudget(cat, cents)
     },
     onSuccess: async () => {
@@ -180,7 +189,11 @@ function BudgetDialog({ editing, options, onClose }: DialogProps) {
 
   return (
     <Modal
-      title={existing ? `${byId.get(existing.category_id)?.name ?? ''} budget` : 'New budget'}
+      title={
+        existing
+          ? t('budgets.titleFor', { name: displayName(byId.get(existing.category_id)?.name ?? '') })
+          : t('budgets.new')
+      }
       open={editing !== null}
       onClose={() => {
         save.reset()
@@ -197,20 +210,21 @@ function BudgetDialog({ editing, options, onClose }: DialogProps) {
       >
         {!existing && (
           <label className="field">
-            <span>Category</span>
+            <span>{t('common.category')}</span>
             <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               {options.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}
+                  {displayName(c.name)}
                 </option>
               ))}
             </select>
           </label>
         )}
         <label className="field">
-          <span>Monthly limit</span>
+          <span>{t('budgets.limit')}</span>
           <input
             className="input input-amount"
+            dir="ltr"
             inputMode="decimal"
             placeholder="0.00"
             value={amount}
@@ -221,18 +235,30 @@ function BudgetDialog({ editing, options, onClose }: DialogProps) {
         <footer className="modal-actions">
           {existing && (
             <button type="button" className="btn btn-danger" onClick={() => remove.mutate()}>
-              Remove
+              {t('common.remove')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className="btn btn-primary" disabled={save.isPending}>
-            Save
+            {t('common.save')}
           </button>
         </footer>
       </form>
     </Modal>
+  )
+}
+
+/** A translated sentence with a formatted amount in place of {amount}; word order differs by language. */
+function Amounted({ k, cents, whole }: { k: Key; cents: number; whole?: boolean }) {
+  const [before, after] = t(k).split('{amount}')
+  return (
+    <>
+      {before}
+      <Money cents={cents} whole={whole} />
+      {after}
+    </>
   )
 }

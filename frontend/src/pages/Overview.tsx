@@ -9,6 +9,7 @@ import TrendChart from '../components/TrendChart'
 import { api } from '../lib/api'
 import { currentMonth, monthBounds, monthName, percentChange, shiftMonth } from '../lib/format'
 import { UNCATEGORIZED, useCategories, useComposer, useMonth, useUser } from '../lib/hooks'
+import { displayName, t } from '../lib/i18n'
 
 export default function Overview() {
   const { month } = useMonth()
@@ -32,31 +33,35 @@ export default function Overview() {
 
   return (
     <div className="page">
-      <PageHeader title={isCurrent ? `Hello, ${firstName}` : monthName(month)}>
+      <PageHeader title={isCurrent ? t('overview.hello', { name: firstName }) : monthName(month)}>
         <MonthPicker />
       </PageHeader>
 
-      <section className="figures" aria-label="Summary">
-        <Figure label="Spent" cents={o?.expense} delta={o && percentChange(o.expense, o.previous_expense)} invert />
-        <Figure label="Earned" cents={o?.income} delta={o && percentChange(o.income, o.previous_income)} />
+      <section className="figures" aria-label={t('overview.summary')}>
+        <Figure label={t('overview.spent')} cents={o?.expense} delta={o && percentChange(o.expense, o.previous_expense)} invert />
+        <Figure label={t('overview.earned')} cents={o?.income} delta={o && percentChange(o.income, o.previous_income)} />
         <Figure
-          label="Saved"
+          label={t('overview.saved')}
           cents={o ? o.income - o.expense : undefined}
-          note={o && o.income > 0 ? `${Math.round(((o.income - o.expense) / o.income) * 100)}% of income` : undefined}
+          note={
+            o && o.income > 0
+              ? t('overview.ofIncome', { pct: Math.round(((o.income - o.expense) / o.income) * 100) })
+              : undefined
+          }
         />
-        <Figure label="Net worth" cents={o?.net_worth} note="Across all accounts" />
+        <Figure label={t('overview.netWorth')} cents={o?.net_worth} note={t('overview.allAccounts')} />
       </section>
 
       {o && !hasActivity && (
         <div className="empty">
-          <h3>Nothing recorded in {monthName(month)}</h3>
-          <p className="muted">Add your first expense or income and this page fills in.</p>
+          <h3>{t('overview.emptyTitle', { month: monthName(month) })}</h3>
+          <p className="muted">{t('overview.emptyBody')}</p>
           <div className="empty-actions">
             <button className="btn btn-primary" onClick={() => openComposer()}>
-              Add a transaction
+              {t('overview.addFirst')}
             </button>
             <Link className="btn" to="/transactions">
-              Import a CSV
+              {t('overview.importCsv')}
             </Link>
           </div>
         </div>
@@ -65,14 +70,14 @@ export default function Overview() {
       <div className="overview-grid">
         <section className="panel span-2">
           <div className="panel-head">
-            <h2>Last six months</h2>
+            <h2>{t('overview.sixMonths')}</h2>
           </div>
           {trend.data && <TrendChart data={trend.data} selected={month} />}
         </section>
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Where it went</h2>
+            <h2>{t('overview.whereItWent')}</h2>
           </div>
           {o && o.by_category.length > 0 ? (
             <ul className="breakdown">
@@ -83,7 +88,7 @@ export default function Overview() {
                   <li key={row.category_id ?? 0}>
                     <div className="breakdown-line">
                       <span className="swatch" style={{ background: cat.color }} />
-                      <span className="breakdown-name">{cat.name}</span>
+                      <span className="breakdown-name">{displayName(cat.name)}</span>
                       <span className="faint num">{Math.round(share * 100)}%</span>
                       <Money cents={row.amount} />
                     </div>
@@ -95,15 +100,15 @@ export default function Overview() {
               })}
             </ul>
           ) : (
-            <p className="faint panel-empty">No spending this month.</p>
+            <p className="faint panel-empty">{t('overview.noSpending')}</p>
           )}
         </section>
 
         <section className="panel">
           <div className="panel-head">
-            <h2>Budgets</h2>
+            <h2>{t('nav.budgets')}</h2>
             <Link to="/budgets" className="link-quiet">
-              Manage
+              {t('overview.manage')}
             </Link>
           </div>
           {budgets.data && budgets.data.length > 0 ? (
@@ -117,7 +122,7 @@ export default function Overview() {
                   return (
                     <li key={b.id}>
                       <div className="budget-mini-line">
-                        <span>{cat?.name}</span>
+                        <span>{cat && displayName(cat.name)}</span>
                         <span className="num faint">
                           <Money cents={b.spent} whole className={pct > 1 ? 'danger-text' : ''} /> /{' '}
                           <Money cents={b.amount} whole />
@@ -132,16 +137,17 @@ export default function Overview() {
             </ul>
           ) : (
             <p className="faint panel-empty">
-              No budgets yet. <Link to="/budgets">Set one</Link> to keep a category in check.
+              {t('overview.noBudgets')} <Link to="/budgets">{t('overview.setOne')}</Link>{' '}
+              {t('overview.noBudgetsTail')}
             </p>
           )}
         </section>
 
         <section className="panel span-2">
           <div className="panel-head">
-            <h2>Recent</h2>
+            <h2>{t('overview.recent')}</h2>
             <Link to="/transactions" className="link-quiet">
-              All transactions
+              {t('overview.allTransactions')}
             </Link>
           </div>
           {recent.data && recent.data.items.length > 0 ? (
@@ -151,7 +157,7 @@ export default function Overview() {
               ))}
             </ul>
           ) : (
-            <p className="faint panel-empty">Nothing here yet.</p>
+            <p className="faint panel-empty">{t('overview.nothingYet')}</p>
           )}
         </section>
       </div>
@@ -175,7 +181,10 @@ function Figure({ label, cents, delta, invert, note }: FigureProps) {
   if (delta !== undefined && delta !== null) {
     const good = invert ? delta <= 0 : delta >= 0
     tone = delta === 0 ? '' : good ? 'is-good' : 'is-bad'
-    detail = delta === 0 ? `Same as ${prev}` : `${Math.abs(delta)}% ${delta > 0 ? 'more' : 'less'} than ${prev}`
+    detail =
+      delta === 0
+        ? t('overview.same', { month: prev })
+        : t(delta > 0 ? 'overview.more' : 'overview.less', { pct: Math.abs(delta), month: prev })
   }
   return (
     <div className="figure">

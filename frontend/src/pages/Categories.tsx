@@ -5,6 +5,7 @@ import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
 import { api, type Category, type Kind } from '../lib/api'
 import { useCategories, useRefreshMoney } from '../lib/hooks'
+import { displayName, t } from '../lib/i18n'
 
 // Muted, print-like colors that sit well on the paper background in both themes.
 const PALETTE = [
@@ -18,14 +19,14 @@ export default function Categories() {
 
   return (
     <div className="page page-narrow">
-      <PageHeader title="Categories" />
+      <PageHeader title={t('nav.categories')} />
       <div className="columns-2">
         {(['expense', 'income'] as const).map((kind) => (
           <section key={kind} className="panel">
             <div className="panel-head">
-              <h2>{kind === 'expense' ? 'Spending' : 'Income'}</h2>
+              <h2>{kind === 'expense' ? t('categories.spending') : t('categories.income')}</h2>
               <button className="btn btn-quiet btn-sm" onClick={() => setEditing({ kind })}>
-                Add
+                {t('common.add')}
               </button>
             </div>
             <ul className="ledger">
@@ -36,9 +37,9 @@ export default function Categories() {
                     <button className="ledger-row" onClick={() => setEditing(c)}>
                       <span className="cat-name">
                         <span className="swatch" style={{ background: c.color }} />
-                        {c.name}
+                        {displayName(c.name)}
                       </span>
-                      <span className="faint">Edit</span>
+                      <span className="faint">{t('common.edit')}</span>
                     </button>
                   </li>
                 ))}
@@ -72,7 +73,7 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
   const key = editing === null ? null : existing ? `c${existing.id}` : `new-${editing.kind}`
   if (key !== lastKey) {
     setLastKey(key)
-    setName(existing?.name ?? '')
+    setName(existing ? displayName(existing.name) : '')
     setColor(existing?.color ?? defaultColor)
   }
 
@@ -82,14 +83,18 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
     onClose()
   }
   const save = useMutation({
-    mutationFn: () => api.saveCategory({ name, color, kind: editing!.kind }, existing?.id),
+    mutationFn: () => {
+      // The field shows starter names translated; keep the stored name unless it was actually edited.
+      const unchanged = existing && name === displayName(existing.name)
+      return api.saveCategory({ name: unchanged ? existing.name : name, color, kind: editing!.kind }, existing?.id)
+    },
     onSuccess: done,
   })
   const remove = useMutation({ mutationFn: () => api.deleteCategory(existing!.id), onSuccess: done })
 
   return (
     <Modal
-      title={existing ? 'Edit category' : 'New category'}
+      title={existing ? t('categories.edit') : t('categories.new')}
       open={editing !== null}
       onClose={() => {
         save.reset()
@@ -105,7 +110,7 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
         }}
       >
         <label className="field">
-          <span>Name</span>
+          <span>{t('common.name')}</span>
           <input
             className="input"
             value={name}
@@ -115,7 +120,7 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
           />
         </label>
         <fieldset className="field palette">
-          <legend>Color</legend>
+          <legend>{t('categories.color')}</legend>
           <div className="palette-grid">
             {PALETTE.map((c) => (
               <button
@@ -137,18 +142,18 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
               type="button"
               className="btn btn-danger"
               onClick={() =>
-                confirm(`Delete "${existing.name}"? Its transactions will become Uncategorized.`) && remove.mutate()
+                confirm(t('categories.confirmDelete', { name: displayName(existing.name) })) && remove.mutate()
               }
             >
-              Delete
+              {t('common.delete')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className="btn btn-primary" disabled={save.isPending}>
-            Save
+            {t('common.save')}
           </button>
         </footer>
       </form>

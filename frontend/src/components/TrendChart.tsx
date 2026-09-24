@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
 import type { MonthTotal } from '../lib/api'
-import { money, monthName } from '../lib/format'
+import { compactNumber, money, monthName } from '../lib/format'
 import { useUser } from '../lib/hooks'
+import { t } from '../lib/i18n'
 
 const H = 210
 const PAD = { top: 12, right: 8, bottom: 28, left: 52 }
@@ -43,21 +44,21 @@ export default function TrendChart({ data, selected }: { data: MonthTotal[]; sel
           <>
             <span className="faint">{monthName(focus.month)}</span>
             <span>
-              <i className="key key-income" /> In <b className="num">{money(focus.income, currency, { whole: true })}</b>
+              <i className="key key-income" /> {t('chart.in')} <b className="num">{money(focus.income, currency, { whole: true })}</b>
             </span>
             <span>
-              <i className="key key-expense" /> Out{' '}
+              <i className="key key-expense" /> {t('chart.out')}{' '}
               <b className="num">{money(focus.expense, currency, { whole: true })}</b>
             </span>
           </>
         )}
       </div>
-      <svg height={H} viewBox={`0 0 ${W} ${H}`} className="trend-svg" role="img" aria-label="Income and spending by month">
-        {ticks.map((t) => (
-          <g key={t}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} className={t === 0 ? 'axis' : 'grid'} />
-            <text x={PAD.left - 10} y={y(t)} dy="0.32em" textAnchor="end" className="tick">
-              {compact(t / 100)}
+      <svg height={H} viewBox={`0 0 ${W} ${H}`} className="trend-svg" role="img" aria-label={t('chart.label')}>
+        {ticks.map((tick) => (
+          <g key={tick}>
+            <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className={tick === 0 ? 'axis' : 'grid'} />
+            <text x={PAD.left - 10} y={y(tick)} dy="0.32em" textAnchor="end" className="tick">
+              {compactNumber(tick / 100)}
             </text>
           </g>
         ))}
@@ -102,8 +103,4 @@ function niceStep(raw: number) {
   const mag = 10 ** Math.floor(Math.log10(Math.max(raw, 1)))
   const norm = raw / mag
   return (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag
-}
-
-function compact(v: number) {
-  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(v)
 }

@@ -10,6 +10,7 @@ import TransactionRow from '../components/TransactionRow'
 import { api, type Transaction } from '../lib/api'
 import { dayHeading, monthBounds, monthName } from '../lib/format'
 import { useAccounts, useCategories, useComposer, useMonth, useRefreshMoney } from '../lib/hooks'
+import { displayName, t } from '../lib/i18n'
 
 const PAGE = 100
 
@@ -45,70 +46,70 @@ export default function Transactions() {
 
   return (
     <div className="page">
-      <PageHeader title="Transactions">
+      <PageHeader title={t('nav.transactions')}>
         <MonthPicker />
       </PageHeader>
 
       <div className="toolbar">
         <label className="search">
           <Icon name="search" size={16} />
-          <span className="visually-hidden">Search</span>
+          <span className="visually-hidden">{t('common.search')}</span>
           <input
             className="input"
             type="search"
-            placeholder="Search notes and categories"
+            placeholder={t('txs.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-        <div className="segmented" role="group" aria-label="Type">
+        <div className="segmented" role="group" aria-label={t('common.type')}>
           {(
             [
-              ['', 'All'],
-              ['expense', 'Spending'],
-              ['income', 'Income'],
+              ['', 'txs.all'],
+              ['expense', 'txs.spending'],
+              ['income', 'txs.income'],
             ] as const
           ).map(([value, label]) => (
             <button key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
         <select className="select select-auto" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          <option value="">All categories</option>
-          <option value="0">Uncategorized</option>
+          <option value="">{t('txs.allCategories')}</option>
+          <option value="0">{t('common.uncategorized')}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {displayName(c.name)}
             </option>
           ))}
         </select>
         {accounts.length > 1 && (
           <select className="select select-auto" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-            <option value="">All accounts</option>
+            <option value="">{t('txs.allAccounts')}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.name}
+                {displayName(a.name)}
               </option>
             ))}
           </select>
         )}
         <span className="spacer" />
         <button className="btn" onClick={() => setImporting(true)}>
-          <Icon name="upload" size={16} /> Import
+          <Icon name="upload" size={16} /> {t('txs.import')}
         </button>
         <a className="btn" href={api.exportUrl({ start, end })} download>
-          <Icon name="download" size={16} /> Export
+          <Icon name="download" size={16} /> {t('txs.export')}
         </a>
       </div>
 
       {first && (
         <p className="summary-line">
-          <span className="num">{first.total}</span> {first.total === 1 ? 'transaction' : 'transactions'}
+          <span>{first.total === 1 ? t('txs.count1') : t('txs.count', { n: first.total })}</span>
           <span className="dot" />
-          In <Money cents={first.income} className="income" />
+          {t('txs.in')} <Money cents={first.income} className="income" />
           <span className="dot" />
-          Out <Money cents={first.expense} />
+          {t('txs.out')} <Money cents={first.expense} />
           {filtered && (
             <button
               className="btn btn-quiet btn-sm"
@@ -119,7 +120,7 @@ export default function Transactions() {
                 setCategoryId('')
               }}
             >
-              Clear filters
+              {t('txs.clear')}
             </button>
           )}
         </p>
@@ -127,17 +128,15 @@ export default function Transactions() {
 
       {first && items.length === 0 && (
         <div className="empty">
-          <h3>{filtered ? 'No matches' : `No transactions in ${monthName(month)}`}</h3>
-          <p className="muted">
-            {filtered ? 'Try a different search or filter.' : 'Add one by hand, or import a CSV from your bank.'}
-          </p>
+          <h3>{filtered ? t('txs.noMatches') : t('txs.emptyTitle', { month: monthName(month) })}</h3>
+          <p className="muted">{filtered ? t('txs.tryDifferent') : t('txs.emptyBody')}</p>
           {!filtered && (
             <div className="empty-actions">
               <button className="btn btn-primary" onClick={() => openComposer()}>
-                Add a transaction
+                {t('txs.addOne')}
               </button>
               <button className="btn" onClick={() => setImporting(true)}>
-                Import CSV
+                {t('txs.importCsv')}
               </button>
             </div>
           )}
@@ -166,7 +165,7 @@ export default function Transactions() {
       {query.hasNextPage && (
         <div className="load-more">
           <button className="btn" onClick={() => query.fetchNextPage()} disabled={query.isFetchingNextPage}>
-            {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+            {query.isFetchingNextPage ? t('txs.loading') : t('txs.loadMore')}
           </button>
         </div>
       )}
@@ -204,19 +203,19 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
   }
 
   return (
-    <Modal title="Import from CSV" open={open} onClose={close} width={480}>
+    <Modal title={t('import.title')} open={open} onClose={close} width={480}>
       {upload.isSuccess ? (
         <div className="stack">
           <p>
-            Imported <b className="num">{upload.data.imported}</b> transactions.
+            {t('import.done', { n: upload.data.imported })}
             {upload.data.created_categories.length > 0 && (
-              <> New categories: {upload.data.created_categories.join(', ')}.</>
+              <> {t('import.newCategories', { list: upload.data.created_categories.join('، ') })}</>
             )}
           </p>
           <footer className="modal-actions">
             <span className="spacer" />
             <button className="btn btn-primary" onClick={close}>
-              Done
+              {t('import.doneBtn')}
             </button>
           </footer>
         </div>
@@ -228,17 +227,13 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
             upload.mutate()
           }}
         >
-          <p className="muted">
-            Needs <code>date</code> (YYYY-MM-DD) and <code>amount</code> columns. <code>category</code>,{' '}
-            <code>note</code> and <code>kind</code> are optional. Without <code>kind</code>, negative amounts are
-            treated as spending.
-          </p>
+          <p className="muted">{t('import.help')}</p>
           <label className="field">
-            <span>Into account</span>
+            <span>{t('import.into')}</span>
             <select className="select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}
+                  {displayName(a.name)}
                 </option>
               ))}
             </select>
@@ -246,16 +241,16 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <label className="dropzone">
             <input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <Icon name="upload" />
-            <span>{file ? file.name : 'Choose a .csv file'}</span>
+            <span>{file ? file.name : t('import.choose')}</span>
           </label>
           {upload.error && <p className="form-error">{upload.error.message}</p>}
           <footer className="modal-actions">
             <span className="spacer" />
             <button type="button" className="btn" onClick={close}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button className="btn btn-primary" disabled={!file || upload.isPending}>
-              {upload.isPending ? 'Importing…' : 'Import'}
+              {upload.isPending ? t('import.importing') : t('import.go')}
             </button>
           </footer>
         </form>

@@ -21,7 +21,7 @@
   --track: #ebe8df;
   --focus: #1f4d3a55;
 
-  --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   --radius: 6px;
@@ -263,7 +263,7 @@ textarea {
 
 .select {
   appearance: none;
-  padding-right: 30px;
+  padding-inline-end: 30px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%238d8b82' stroke-width='1.5'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 11px center;
@@ -320,7 +320,8 @@ textarea {
 
 .meter > span {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   border-radius: 3px;
   background: var(--accent);
 }
@@ -339,4 +340,36 @@ textarea {
   width: 9px;
   height: 9px;
   border-radius: 2px;
+}
+
+/* ---- right-to-left (Arabic) ------------------------------------------------------ */
+
+[dir='rtl'] .select {
+  background-position: left 11px center;
+}
+
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* Arabic letters join; letter-spacing breaks the joins and uppercase has no meaning. */
+[lang='ar'] h1,
+[lang='ar'] h2,
+[lang='ar'] .logo {
+  letter-spacing: 0;
+}
+
+[lang='ar'] h2 {
+  font-size: 0.9rem;
+}
+
+[lang='ar'] body {
+  line-height: 1.6;
+}
+
+/* Figures are laid out left-to-right in both languages ("-17.87 US$", "1,250.00 ج.م.")
+   and isolated so they don't reorder the Arabic text around them. */
+.num {
+  direction: ltr;
+  unicode-bidi: isolate;
 }

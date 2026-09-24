@@ -1,23 +1,28 @@
-// Money, date and month helpers.
+// Money, date and month helpers. All output follows the current app language.
+
+import { locale, t } from './i18n'
 
 const moneyFormatters = new Map<string, Intl.NumberFormat>()
 
 export function money(cents: number, currency: string, opts: { sign?: boolean; whole?: boolean } = {}) {
-  const key = `${currency}-${opts.whole}`
+  const key = `${locale()}-${currency}-${opts.whole}-${opts.sign}`
   let fmt = moneyFormatters.get(key)
   if (!fmt) {
-    fmt = new Intl.NumberFormat(undefined, {
+    fmt = new Intl.NumberFormat(locale(), {
       style: 'currency',
       currency,
       minimumFractionDigits: opts.whole ? 0 : 2,
       maximumFractionDigits: opts.whole ? 0 : 2,
+      // Let Intl place the sign; its position differs between English and Arabic.
+      signDisplay: opts.sign ? 'exceptZero' : 'auto',
     })
     moneyFormatters.set(key, fmt)
   }
-  const text = fmt.format(Math.abs(cents) / 100)
-  if (cents < 0) return `−${text}`
-  if (opts.sign && cents > 0) return `+${text}`
-  return text
+  return fmt.format(cents / 100)
+}
+
+export function compactNumber(value: number) {
+  return new Intl.NumberFormat(locale(), { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 }
 
 /** Parse what a person types ("12", "12.5", "1,200.00") into cents, or null. */
@@ -55,7 +60,7 @@ export function monthName(month: string, style: 'long' | 'short' = 'long') {
   const [y, m] = month.split('-').map(Number)
   const date = new Date(y, m - 1, 1)
   const sameYear = y === new Date().getFullYear()
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(locale(), {
     month: style,
     year: style === 'long' && !sameYear ? 'numeric' : undefined,
   })
@@ -66,14 +71,14 @@ export function dayHeading(iso: string) {
   const d = new Date(`${iso}T00:00:00`)
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
-  if (iso === today) return 'Today'
+  if (iso === today) return t('date.today')
   if (iso === `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`)
-    return 'Yesterday'
-  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+    return t('date.yesterday')
+  return d.toLocaleDateString(locale(), { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
 export function shortDate(iso: string) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(locale(), { month: 'short', day: 'numeric' })
 }
 
 export function percentChange(current: number, previous: number): number | null {
@@ -86,10 +91,11 @@ export const CURRENCIES = [
   'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'TRY', 'INR', 'JPY',
 ]
 
-const currencyNames = new Intl.DisplayNames(['en'], { type: 'currency' })
-
-/** "EGP – Egyptian Pound" */
-export const currencyLabel = (code: string) => `${code} – ${currencyNames.of(code) ?? code}`
+/** "EGP – Egyptian Pound" / "EGP – جنيه مصري" */
+export function currencyLabel(code: string) {
+  const names = new Intl.DisplayNames([locale()], { type: 'currency' })
+  return `${code} – ${names.of(code) ?? code}`
+}
 
 /** Best guess from the browser's region, e.g. en-AE → AED, ar-EG → EGP. */
 export function guessCurrency(): string {

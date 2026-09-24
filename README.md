@@ -28,6 +28,7 @@
 - **CSV import and export.** Bring in a bank export (negative amounts become expenses, unknown categories are created for you) or take your data anywhere.
 - **Categories.** Your own spending and income categories, each with a color.
 - **Accounts and security.** Email and password sign-up, bcrypt-hashed passwords, httpOnly session cookies, strict per-user data isolation, password change and account deletion.
+- **English and Arabic.** Full right-to-left layout, IBM Plex Sans Arabic, localized dates and money, and a one-tap language switch. Starter categories are translated too.
 - **Installable on your phone.** Web-app manifest, home-screen icon, safe-area aware layout and a floating add button. Follows the system dark mode.
 
 <table>
@@ -38,6 +39,9 @@
   <tr>
     <td><img src="docs/screenshots/new.png" alt="New transaction"></td>
     <td><img src="docs/screenshots/overview-dark.png" alt="Dark mode"></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/arabic.png" alt="Arabic, right-to-left"></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/login.png" alt="Sign in"></td>
