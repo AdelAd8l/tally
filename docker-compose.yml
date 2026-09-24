@@ -1,0 +1,16 @@
+services:
+  tally:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Generate your own: python -c "import secrets; print(secrets.token_hex(32))"
+      TALLY_SECRET_KEY: ${TALLY_SECRET_KEY:?Set TALLY_SECRET_KEY in .env}
+      TALLY_DEMO: ${TALLY_DEMO:-false}
+      TALLY_COOKIE_SECURE: ${TALLY_COOKIE_SECURE:-false}
+    volumes:
+      - tally-data:/data
+    restart: unless-stopped
+
+volumes:
+  tally-data:

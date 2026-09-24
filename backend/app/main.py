@@ -1,0 +1,48 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from . import seed
+from .config import get_settings
+from .database import Base, engine
+from .routers import accounts, auth, budgets, categories, reports, transactions
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    Base.metadata.create_all(engine)
+    if get_settings().demo:
+        seed.run(only_if_missing=True)
+    yield
+
+
+app = FastAPI(title="Tally", version="1.0.0", lifespan=lifespan)
+
+for module in (auth, accounts, categories, transactions, budgets, reports):
+    app.include_router(module.router)
+
+
+@app.get("/api/health", tags=["meta"])
+def health():
+    body: dict = {"status": "ok"}
+    if get_settings().demo:
+        body["demo"] = {"email": seed.DEMO_EMAIL, "password": seed.DEMO_PASSWORD}
+    return body
+
+
+# Serve the built React app (frontend/dist) from the same origin, with SPA fallback.
+static_dir = Path(get_settings().static_dir).resolve()
+if (static_dir / "index.html").exists():
+    app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str):
+        if path.startswith("api/"):
+            raise HTTPException(404)
+        file = (static_dir / path).resolve()
+        if path and file.is_file() and file.is_relative_to(static_dir):
+            return FileResponse(file)
+        return FileResponse(static_dir / "index.html")
