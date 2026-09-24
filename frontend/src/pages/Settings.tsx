@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '../components/PageHeader'
 import { api } from '../lib/api'
-import { CURRENCIES } from '../lib/format'
+import { CURRENCIES, currencyLabel } from '../lib/format'
 import { useUser } from '../lib/hooks'
 
 export default function Settings() {
@@ -64,7 +64,9 @@ export default function Settings() {
             <span>Currency</span>
             <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[...new Set([user.currency, ...CURRENCIES])].map((c) => (
-                <option key={c}>{c}</option>
+                <option key={c} value={c}>
+                  {currencyLabel(c)}
+                </option>
               ))}
             </select>
           </label>

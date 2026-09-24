@@ -77,8 +77,8 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
 export const api = {
   me: () => request<User>('GET', '/auth/me'),
   login: (email: string, password: string) => request<User>('POST', '/auth/login', { email, password }),
-  register: (name: string, email: string, password: string) =>
-    request<User>('POST', '/auth/register', { name, email, password }),
+  register: (name: string, email: string, password: string, currency: string) =>
+    request<User>('POST', '/auth/register', { name, email, password, currency }),
   logout: () => request<void>('POST', '/auth/logout'),
   updateMe: (data: Partial<Pick<User, 'name' | 'currency'>>) => request<User>('PATCH', '/auth/me', data),
   changePassword: (current_password: string, new_password: string) =>

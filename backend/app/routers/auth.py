@@ -25,7 +25,12 @@ def register(data: RegisterIn, response: Response, db: Session = Depends(get_db)
     email = data.email.lower()
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(409, "An account with this email already exists")
-    user = User(email=email, name=data.name.strip(), password_hash=hash_password(data.password))
+    user = User(
+        email=email,
+        name=data.name.strip(),
+        password_hash=hash_password(data.password),
+        currency=data.currency,
+    )
     db.add(user)
     create_starter_data(db, user)
     db.commit()

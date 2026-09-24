@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import Logo from '../components/Logo'
 import { api } from '../lib/api'
+import { CURRENCIES, currencyLabel, guessCurrency } from '../lib/format'
 
 const RECEIPT = [
   ['Rent', '1,450.00'],
@@ -19,6 +20,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [currency, setCurrency] = useState(guessCurrency)
   const signup = mode === 'signup'
 
   const health = useQuery({
@@ -34,7 +36,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
       creds
         ? api.login(creds.email, creds.password)
         : signup
-          ? api.register(name, email, password)
+          ? api.register(name, email, password, currency)
           : api.login(email, password),
     onSuccess: (user) => {
       qc.setQueryData(['me'], user)
@@ -98,6 +100,18 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
                 required
               />
             </label>
+            {signup && (
+              <label className="field">
+                <span>Currency</span>
+                <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {currencyLabel(c)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {submit.error && <p className="form-error">{submit.error.message}</p>}
             <button className="btn btn-primary btn-block" disabled={submit.isPending}>
               {submit.isPending ? 'One moment…' : signup ? 'Create account' : 'Sign in'}

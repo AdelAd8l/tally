@@ -81,4 +81,25 @@ export function percentChange(current: number, previous: number): number | null 
   return Math.round(((current - previous) / previous) * 100)
 }
 
-export const CURRENCIES = ['USD', 'EUR', 'GBP', 'EGP', 'SAR', 'AED', 'CAD', 'AUD', 'JPY', 'INR', 'CHF', 'TRY']
+export const CURRENCIES = [
+  'EGP', 'AED', 'SAR', 'KWD', 'QAR', 'BHD', 'OMR', 'JOD', 'MAD',
+  'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'TRY', 'INR', 'JPY',
+]
+
+const currencyNames = new Intl.DisplayNames(['en'], { type: 'currency' })
+
+/** "EGP – Egyptian Pound" */
+export const currencyLabel = (code: string) => `${code} – ${currencyNames.of(code) ?? code}`
+
+/** Best guess from the browser's region, e.g. en-AE → AED, ar-EG → EGP. */
+export function guessCurrency(): string {
+  const byRegion: Record<string, string> = {
+    EG: 'EGP', AE: 'AED', SA: 'SAR', KW: 'KWD', QA: 'QAR', BH: 'BHD', OM: 'OMR', JO: 'JOD', MA: 'MAD',
+    US: 'USD', GB: 'GBP', CA: 'CAD', AU: 'AUD', CH: 'CHF', TR: 'TRY', IN: 'INR', JP: 'JPY',
+  }
+  for (const locale of navigator.languages ?? [navigator.language]) {
+    const region = locale.split('-')[1]?.toUpperCase()
+    if (region && byRegion[region]) return byRegion[region]
+  }
+  return 'USD'
+}

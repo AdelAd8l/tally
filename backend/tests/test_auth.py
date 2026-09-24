@@ -84,3 +84,16 @@ def test_signup_can_be_closed(client, monkeypatch):
     r = client.post("/api/auth/register", json={"email": "x@example.com", "name": "x", "password": "12345678"})
     assert r.status_code == 403
     assert client.get("/api/health").json()["signup"] is False
+
+
+def test_register_with_currency(client):
+    r = client.post(
+        "/api/auth/register",
+        json={"email": "m@example.com", "name": "Mona", "password": "12345678", "currency": "EGP"},
+    )
+    assert r.json()["currency"] == "EGP"
+    bad = client.post(
+        "/api/auth/register",
+        json={"email": "n@example.com", "name": "N", "password": "12345678", "currency": "egp"},
+    )
+    assert bad.status_code == 422
