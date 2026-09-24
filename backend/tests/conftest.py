@@ -1,6 +1,7 @@
 import os
 
-os.environ["TALLY_DATABASE_URL"] = "sqlite://"
+# Set TEST_DATABASE_URL to run the suite against Postgres instead of in-memory SQLite.
+os.environ["TALLY_DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 os.environ["TALLY_STATIC_DIR"] = "/nonexistent"
 os.environ["TALLY_SECRET_KEY"] = "test-secret-key-that-is-long-enough-for-hs256"
 

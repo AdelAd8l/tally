@@ -52,7 +52,7 @@ export default function TrendChart({ data, selected }: { data: MonthTotal[]; sel
           </>
         )}
       </div>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="trend-svg" role="img" aria-label="Income and spending by month">
+      <svg height={H} viewBox={`0 0 ${W} ${H}`} className="trend-svg" role="img" aria-label="Income and spending by month">
         {ticks.map((t) => (
           <g key={t}>
             <line x1={PAD.left} x2={W - PAD.right} y1={y(t)} y2={y(t)} className={t === 0 ? 'axis' : 'grid'} />

@@ -28,7 +28,7 @@
 - **CSV import and export.** Bring in a bank export (negative amounts become expenses, unknown categories are created for you) or take your data anywhere.
 - **Categories.** Your own spending and income categories, each with a color.
 - **Accounts and security.** Email and password sign-up, bcrypt-hashed passwords, httpOnly session cookies, strict per-user data isolation, password change and account deletion.
-- **Dark mode and mobile.** Follows the system theme. Works on a phone with a floating add button.
+- **Installable on your phone.** Web-app manifest, home-screen icon, safe-area aware layout and a floating add button. Follows the system dark mode.
 
 <table>
   <tr>
@@ -57,6 +57,24 @@ docker compose up --build
 ```
 
 Open http://localhost:8000.
+
+### Use it on your phone (free hosting)
+
+Tally installs to your home screen like a native app: full screen, its own icon, no app store.
+
+1. **Create a free Postgres database** on [Neon](https://neon.tech) and copy its connection string
+   (`postgresql://...`). Render's free disk is wiped on every deploy, so the database keeps your data safe.
+2. **Deploy:** click [**Deploy to Render**](https://render.com/deploy?repo=https://github.com/AdelAd8l/tally),
+   sign in with GitHub, and paste the connection string into `TALLY_DATABASE_URL`.
+   `render.yaml` sets up everything else, including a random secret key.
+3. **Open your `…onrender.com` URL on your phone** and create your account.
+4. **Close sign-ups:** in Render → *Environment*, set `TALLY_ALLOW_SIGNUP=false`, so nobody else can register.
+5. **Install:**
+   - **iPhone (Safari):** Share → *Add to Home Screen*
+   - **Android (Chrome):** ⋮ menu → *Add to Home screen* / *Install app*
+
+> Render's free plan sleeps after 15 minutes without traffic, so the first open after a break takes
+> about 30–50 seconds. Your data isn't affected.
 
 ### Local development
 
@@ -97,6 +115,7 @@ tally/
 │       ├── components/        layout, dialogs, hand-drawn SVG chart
 │       └── pages/             Overview, Transactions, Budgets, Accounts, Categories, Settings
 ├── Dockerfile                 multi-stage: builds the React app, serves it from FastAPI
+├── render.yaml                one-click deploy to Render
 └── .github/workflows/ci.yml   lint + tests + build + docker image on every push
 ```
 
@@ -127,9 +146,10 @@ Interactive docs are at `/docs` when the server is running. Main endpoints:
 | Variable | Default | |
 |---|---|---|
 | `TALLY_SECRET_KEY` | dev key | **Set this in production.** Signs session tokens. |
-| `TALLY_DATABASE_URL` | `sqlite:///./tally.db` | Any SQLAlchemy URL |
+| `TALLY_DATABASE_URL` | `sqlite:///./tally.db` | SQLite or Postgres (`postgresql://…` URLs from Neon, Supabase, Render work as-is) |
 | `TALLY_COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
 | `TALLY_DEMO` | `false` | Seed a demo account and show a demo button on sign-in |
+| `TALLY_ALLOW_SIGNUP` | `true` | Set `false` to keep a personal server private |
 | `TALLY_SESSION_DAYS` | `14` | Session length |
 
 ## Testing

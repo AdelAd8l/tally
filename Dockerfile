@@ -19,4 +19,5 @@ ENV TALLY_STATIC_DIR=/app/static \
     TALLY_DATABASE_URL=sqlite:////data/tally.db
 VOLUME ["/data"]
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Hosts like Render and Railway pass the port in $PORT.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

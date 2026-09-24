@@ -75,3 +75,12 @@ def test_delete_account_removes_everything(client, ids):
     assert client.get("/api/auth/me").status_code == 401
     # The email is free again.
     signup(client)
+
+
+def test_signup_can_be_closed(client, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "allow_signup", False)
+    r = client.post("/api/auth/register", json={"email": "x@example.com", "name": "x", "password": "12345678"})
+    assert r.status_code == 403
+    assert client.get("/api/health").json()["signup"] is False

@@ -1,3 +1,4 @@
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -27,11 +28,14 @@ for module in (auth, accounts, categories, transactions, budgets, reports):
 
 @app.get("/api/health", tags=["meta"])
 def health():
-    body: dict = {"status": "ok"}
-    if get_settings().demo:
+    settings = get_settings()
+    body: dict = {"status": "ok", "signup": settings.allow_signup}
+    if settings.demo:
         body["demo"] = {"email": seed.DEMO_EMAIL, "password": seed.DEMO_PASSWORD}
     return body
 
+
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 # Serve the built React app (frontend/dist) from the same origin, with SPA fallback.
 static_dir = Path(get_settings().static_dir).resolve()

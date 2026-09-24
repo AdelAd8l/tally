@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     static_dir: str = "../frontend/dist"
     # Create demo@tally.dev on startup and offer it on the sign-in page (for public demos).
     demo: bool = False
+    # Turn off after creating your own account to keep a personal deployment private.
+    allow_signup: bool = True
 
 
 @lru_cache

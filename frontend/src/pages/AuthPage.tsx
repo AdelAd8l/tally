@@ -23,7 +23,9 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
 
   const health = useQuery({
     queryKey: ['health'],
-    queryFn: () => fetch('/api/health').then((r) => r.json() as Promise<{ demo?: { email: string; password: string } }>),
+    queryFn: () => fetch('/api/health').then(
+        (r) => r.json() as Promise<{ signup?: boolean; demo?: { email: string; password: string } }>,
+      ),
     staleTime: Infinity,
   })
 
@@ -46,6 +48,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   }
 
   const demo = health.data?.demo
+  const signupOpen = health.data?.signup !== false
 
   return (
     <div className="auth">
@@ -111,11 +114,11 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               <>
                 Already have an account? <Link to="/login">Sign in</Link>
               </>
-            ) : (
+            ) : signupOpen ? (
               <>
                 New here? <Link to="/signup">Create an account</Link>
               </>
-            )}
+            ) : null}
           </p>
         </div>
       </div>
