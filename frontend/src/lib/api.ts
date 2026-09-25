@@ -20,6 +20,7 @@ export interface User {
   monthly_summary: boolean
   is_admin: boolean
   must_change_password: boolean
+  has_password: boolean
 }
 export interface SiteSettings {
   allow_signup: boolean

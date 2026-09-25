@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     # starting point: the admin must choose a new one at first sign-in.
     admin_email: str = "adool1832007@gmail.com"
     admin_password: str = "admin"
+    # "Continue with Google" (optional). From Google Cloud: an OAuth client of type "Web application"
+    # whose redirect URI is <public_url>/api/auth/google/callback. Leave empty to hide the button.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # The site's own address, e.g. https://tally-me.duckdns.org (worked out from requests if empty).
+    public_url: str = ""
     # Budget alerts, daily reminder and monthly summary (Web Push). The VAPID keys are generated
     # and stored in the database on first use; set these only to reuse keys from another install.
     notifications: bool = True

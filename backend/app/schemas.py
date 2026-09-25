@@ -56,6 +56,7 @@ class UserOut(ORM):
     currency: str
     is_admin: bool
     must_change_password: bool
+    has_password: bool
     timezone: str
     timezone_auto: bool
     lang: Lang
@@ -88,7 +89,7 @@ class UserUpdate(BaseModel):
 
 
 class PasswordChange(BaseModel):
-    current_password: str
+    current_password: str = ""  # may be empty when the account has no password yet
     new_password: str = Field(min_length=8, max_length=128)
 
 

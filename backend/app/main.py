@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from . import migrate, notify, seed
 from .config import get_settings
 from .database import Base, engine, get_db
-from .routers import accounts, admin, auth, budgets, categories, push, reports, transactions
+from .routers import accounts, admin, auth, budgets, categories, google_login, push, reports, transactions
 from .site_settings import signup_open
 
 
@@ -30,14 +30,18 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Tally", version="1.0.0", lifespan=lifespan)
 
-for module in (auth, accounts, categories, transactions, budgets, reports, push, admin):
+for module in (auth, accounts, categories, transactions, budgets, reports, push, admin, google_login):
     app.include_router(module.router)
 
 
 @app.get("/api/health", tags=["meta"])
 def health(db: Session = Depends(get_db)):
     settings = get_settings()
-    body: dict = {"status": "ok", "signup": signup_open(db)}
+    body: dict = {
+        "status": "ok",
+        "signup": signup_open(db),
+        "google": bool(settings.google_client_id and settings.google_client_secret),
+    }
     if settings.demo:
         body["demo"] = {"email": seed.DEMO_EMAIL, "password": seed.DEMO_PASSWORD}
     return body

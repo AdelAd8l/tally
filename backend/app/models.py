@@ -29,7 +29,9 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(80))
-    password_hash: Mapped[str] = mapped_column(String(255))
+    password_hash: Mapped[str] = mapped_column(String(255))  # "" = signs in with Google only
+    # The Google account ("sub") used with "Continue with Google", if any.
+    google_sub: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     # Notifications: sent in the user's time zone and language.
     timezone: Mapped[str] = mapped_column(String(64), default="Africa/Cairo")
@@ -51,6 +53,10 @@ class User(Base):
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     categories: Mapped[list["Category"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+    @property
+    def has_password(self) -> bool:
+        return bool(self.password_hash)
 
 
 class Account(Base):

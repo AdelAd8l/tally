@@ -13,6 +13,7 @@ COLUMNS = [
     ("users", "timezone", "VARCHAR(64) NOT NULL DEFAULT 'Africa/Cairo'"),
     ("users", "lang", "VARCHAR(2) NOT NULL DEFAULT 'en'"),
     ("users", "timezone_auto", "BOOLEAN NOT NULL DEFAULT TRUE"),
+    ("users", "google_sub", "VARCHAR(255)"),
     ("users", "notify_budgets", "BOOLEAN NOT NULL DEFAULT TRUE"),
     ("users", "daily_reminder", "BOOLEAN NOT NULL DEFAULT TRUE"),
     ("users", "daily_time", "VARCHAR(5) NOT NULL DEFAULT '21:00'"),
