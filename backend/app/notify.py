@@ -137,6 +137,9 @@ class Notice:
     user_id: int
     keys: list[str]  # the first is the one that decides; see run_once
     payload: dict
+    # How long the push service keeps it for a phone that's offline. Past this it's dropped:
+    # a reminder for a class that already started is no use.
+    ttl: int = 3600
 
 
 def _zone(name: str) -> ZoneInfo:
@@ -181,9 +184,8 @@ def due_notices(db: Session, user: User, now: datetime) -> list[Notice]:
                 # Keys carry the budget amount, so raising a budget can alert again at the new level.
                 keys = [f"b{budget.id}:{label(start)}:{budget.amount}:{t}" for t in crossed]
                 name = category_name(category.name, lang)
-                out.append(
-                    Notice(user.id, keys, budget_message(name, crossed[0], used, budget.amount, user.currency, lang))
-                )
+                message = budget_message(name, crossed[0], used, budget.amount, user.currency, lang)
+                out.append(Notice(user.id, keys, message, ttl=12 * 3600))
 
     if user.daily_reminder:
         h, m = map(int, user.daily_time.split(":"))
@@ -196,7 +198,7 @@ def due_notices(db: Session, user: User, now: datetime) -> list[Notice]:
                 .where(Transaction.user_id == user.id, Transaction.created_at >= midnight.astimezone(UTC))
             )
             if not logged:
-                out.append(Notice(user.id, [f"d:{today.isoformat()}"], daily_message(lang)))
+                out.append(Notice(user.id, [f"d:{today.isoformat()}"], daily_message(lang), ttl=3 * 3600))
 
     if user.monthly_summary and today.day == 1 and SUMMARY_HOURS[0] <= local.time() < SUMMARY_HOURS[1]:
         first = shift(today, -1)
@@ -218,14 +220,16 @@ def due_notices(db: Session, user: User, now: datetime) -> list[Notice]:
                 top = category_name("Uncategorized", lang)
             month = datetime.combine(first, time(0))
             payload = summary_message(month, int(income), int(expense), top, user.currency, lang)
-            out.append(Notice(user.id, [f"m:{label(start)}"], payload))
+            out.append(Notice(user.id, [f"m:{label(start)}"], payload, ttl=86400))
     return out
 
 
 # ---- sending ---------------------------------------------------------------------------
 
 
-def send_to_user(db: Session, user_id: int, payload: dict, vapid: Vapid02 | None = None) -> int:
+def send_to_user(
+    db: Session, user_id: int, payload: dict, vapid: Vapid02 | None = None, ttl: int = 3600
+) -> int:
     """Push one message to every device of a user. Returns how many accepted it."""
     vapid = vapid or _vapid(db)
     subject = get_settings().vapid_subject
@@ -237,7 +241,7 @@ def send_to_user(db: Session, user_id: int, payload: dict, vapid: Vapid02 | None
                 json.dumps(payload),
                 vapid_private_key=vapid,
                 vapid_claims={"sub": subject},
-                ttl=3600,
+                ttl=ttl,
                 timeout=10,
             )
             sent += 1
@@ -280,7 +284,7 @@ def run_once(db: Session, now: datetime | None = None) -> int:
                 continue
             for key in notice.keys[1:]:
                 _claim(db, notice.user_id, key)
-            send_to_user(db, notice.user_id, notice.payload, vapid)
+            send_to_user(db, notice.user_id, notice.payload, vapid, notice.ttl)
             count += 1
     db.execute(delete(SentNotice).where(SentNotice.sent_at < now - KEEP_SENT))
     db.commit()

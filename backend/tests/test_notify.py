@@ -195,3 +195,19 @@ def test_signup_keeps_the_phones_time_zone(client):
     assert client.post("/api/auth/register", json=bad).status_code == 422
     plain = {k: v for k, v in body.items() if k != "timezone"} | {"email": "cairo@example.com"}
     assert client.post("/api/auth/register", json=plain).json()["timezone"] == "Africa/Cairo"
+
+
+def test_offline_phones_keep_the_daily_reminder_for_three_hours(client, ids, monkeypatch):
+    kept_for = []
+    monkeypatch.setattr(notify, "webpush", lambda info, data, **kw: kept_for.append(kw["ttl"]))
+    client.patch("/api/auth/me", json={"monthly_summary": False, "daily_time": "21:00"})
+    client.post("/api/push/subscribe", json=SUB)
+    today = datetime.now(CAIRO).date()
+    run(datetime(today.year, today.month, today.day, 21, 5, tzinfo=CAIRO))
+    assert kept_for == [3 * 3600]
+
+
+def test_time_zone_is_automatic_until_picked_by_hand(client, user):
+    assert client.get("/api/auth/me").json()["timezone_auto"] is True
+    me = client.patch("/api/auth/me", json={"timezone": "Asia/Dubai", "timezone_auto": False}).json()
+    assert (me["timezone"], me["timezone_auto"]) == ("Asia/Dubai", False)

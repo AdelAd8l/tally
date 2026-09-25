@@ -12,6 +12,7 @@ export interface User {
   name: string
   currency: string
   timezone: string
+  timezone_auto: boolean
   lang: 'en' | 'ar'
   notify_budgets: boolean
   daily_reminder: boolean

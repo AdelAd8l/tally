@@ -3,16 +3,17 @@ import { useEffect, useRef, useState } from 'react'
 
 import { api, type User } from '../lib/api'
 import { t, type Key } from '../lib/i18n'
-import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
+import { browserTimeZone, disablePush, enablePush, pushState, type PushState } from '../lib/push'
 import TimeZoneField from './TimeZoneField'
 
-type Prefs = Pick<User, 'notify_budgets' | 'daily_reminder' | 'daily_time' | 'monthly_summary' | 'timezone'>
+type Prefs = Pick<User, 'notify_budgets' | 'daily_reminder' | 'daily_time' | 'monthly_summary' | 'timezone' | 'timezone_auto'>
 const pick = (u: User): Prefs => ({
   notify_budgets: u.notify_budgets,
   daily_reminder: u.daily_reminder,
   daily_time: u.daily_time,
   monthly_summary: u.monthly_summary,
   timezone: u.timezone,
+  timezone_auto: u.timezone_auto,
 })
 
 /** Settings → Notifications: turn them on for this phone and choose which ones to get. */
@@ -30,7 +31,10 @@ export default function NotificationSettings({ user }: { user: User }) {
     setBusy(true)
     setError('')
     try {
-      setState(await (on ? enablePush() : disablePush()))
+      const next = await (on ? enablePush() : disablePush())
+      setState(next)
+      const zone = browserTimeZone()
+      if (next === 'on' && prefs.timezone_auto && zone !== prefs.timezone) change({ timezone: zone })
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -111,7 +115,7 @@ export default function NotificationSettings({ user }: { user: User }) {
         )}
       </div>
       {option('monthly_summary', 'notify.monthly', 'notify.monthlyHint')}
-      <TimeZoneField value={prefs.timezone} onChange={(timezone) => change({ timezone })} />
+      <TimeZoneField value={prefs.timezone} auto={prefs.timezone_auto} onChange={change} />
 
       <div className="form-foot">
         {test.isSuccess && <span className="faint">{t('notify.testSent')}</span>}

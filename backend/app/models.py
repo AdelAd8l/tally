@@ -33,6 +33,9 @@ class User(Base):
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     # Notifications: sent in the user's time zone and language.
     timezone: Mapped[str] = mapped_column(String(64), default="Africa/Cairo")
+    # True: follow the phone that receives the notifications (updated when you travel).
+    # False: the zone was picked by hand in Settings and stays put.
+    timezone_auto: Mapped[bool] = mapped_column(Boolean, default=True)
     lang: Mapped[str] = mapped_column(String(2), default="en")
     notify_budgets: Mapped[bool] = mapped_column(Boolean, default=True)  # at 80% and 100% of a budget
     daily_reminder: Mapped[bool] = mapped_column(Boolean, default=True)  # if nothing was logged today

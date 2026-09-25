@@ -57,6 +57,7 @@ class UserOut(ORM):
     is_admin: bool
     must_change_password: bool
     timezone: str
+    timezone_auto: bool
     lang: Lang
     notify_budgets: bool
     daily_reminder: bool
@@ -68,6 +69,7 @@ class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
     currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
     timezone: str | None = Field(default=None, max_length=64)
+    timezone_auto: bool | None = None
     lang: Lang | None = None
     notify_budgets: bool | None = None
     daily_reminder: bool | None = None
