@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { onlineManager, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useMemo } from 'react'
 
 import { api, ApiError, type Category, type Kind, type Transaction, type User } from './api'
@@ -35,15 +35,17 @@ export function useCategories() {
 
 export const UNCATEGORIZED: Category = { id: 0, name: 'Uncategorized', kind: 'expense', color: '#8d8b82' }
 
+/** Refetch these queries. Offline, only mark them stale: a paused refetch would never finish,
+ *  and the screen already shows the change (see lib/offline.ts). They refresh on reconnect. */
+export function refreshKeys(qc: QueryClient, keys: string[]) {
+  const refetchType = onlineManager.isOnline() ? 'active' : 'none'
+  return Promise.all(keys.map((key) => qc.invalidateQueries({ queryKey: [key], refetchType })))
+}
+
 /** Invalidate everything derived from transactions after a write. */
 export function useRefreshMoney() {
   const qc = useQueryClient()
-  return () =>
-    Promise.all(
-      ['transactions', 'overview', 'trend', 'budgets', 'accounts'].map((key) =>
-        qc.invalidateQueries({ queryKey: [key] }),
-      ),
-    )
+  return () => refreshKeys(qc, ['transactions', 'overview', 'trend', 'budgets', 'accounts'])
 }
 
 // ---- selected month, shared by Overview / Transactions / Budgets ---------------

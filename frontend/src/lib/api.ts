@@ -1,11 +1,23 @@
 // Typed client for the Tally API. All amounts are integer cents.
 
-import { serverError } from './i18n'
+import { send, withQuery, type Query } from './http'
+import { pendingCount, syncNow, write } from './offline'
 
 export type Kind = 'expense' | 'income'
 export type AccountKind = 'checking' | 'savings' | 'cash' | 'credit'
 
-export interface User { id: number; email: string; name: string; currency: string }
+export interface User {
+  id: number
+  email: string
+  name: string
+  currency: string
+  timezone: string
+  lang: 'en' | 'ar'
+  notify_budgets: boolean
+  daily_reminder: boolean
+  daily_time: string
+  monthly_summary: boolean
+}
 export interface Account { id: number; name: string; kind: AccountKind; opening_balance: number; balance: number }
 export interface Category { id: number; name: string; kind: Kind; color: string }
 export interface Transaction {
@@ -32,48 +44,20 @@ export interface Overview {
 }
 export interface MonthTotal { month: string; income: number; expense: number }
 
-export class ApiError extends Error {
-  status: number
-  constructor(status: number, message: string) {
-    super(message)
-    this.status = status
-  }
-}
-
-type Query = Record<string, string | number | undefined | null>
-
-function withQuery(path: string, query?: Query) {
-  if (!query) return path
-  const params = new URLSearchParams()
-  for (const [k, v] of Object.entries(query)) {
-    if (v !== undefined && v !== null && v !== '') params.set(k, String(v))
-  }
-  const qs = params.toString()
-  return qs ? `${path}?${qs}` : path
-}
+export { ApiError } from './http'
 
 async function request<T>(method: string, path: string, body?: unknown, query?: Query): Promise<T> {
-  const init: RequestInit = { method, credentials: 'same-origin', headers: {} }
-  if (body instanceof FormData) {
-    init.body = body
-  } else if (body !== undefined) {
-    init.body = JSON.stringify(body)
-    init.headers = { 'Content-Type': 'application/json' }
+  if (method === 'GET') {
+    // Send queued changes first so the answer already includes them.
+    if (pendingCount() && navigator.onLine) await syncNow()
+    return send<T>(method, path, body, query)
   }
-  const res = await fetch(withQuery(`/api${path}`, query), init)
-  if (!res.ok) {
-    let message = res.statusText
-    try {
-      const data = await res.json()
-      if (typeof data.detail === 'string') message = data.detail
-      else if (Array.isArray(data.detail)) message = data.detail.map((d: { msg: string }) => d.msg).join('. ')
-    } catch {
-      /* not JSON */
-    }
-    throw new ApiError(res.status, serverError(message))
+  // Account and notification calls need the server's answer, and a file upload can't be
+  // stored for later: these never go to the outbox. Everything else can wait for a signal.
+  if (path.startsWith('/auth/') || path.startsWith('/push/') || body instanceof FormData) {
+    return send<T>(method, path, body, query)
   }
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+  return write<T>(method, path, body)
 }
 
 export const api = {
@@ -82,7 +66,7 @@ export const api = {
   register: (name: string, email: string, password: string, currency: string) =>
     request<User>('POST', '/auth/register', { name, email, password, currency }),
   logout: () => request<void>('POST', '/auth/logout'),
-  updateMe: (data: Partial<Pick<User, 'name' | 'currency'>>) => request<User>('PATCH', '/auth/me', data),
+  updateMe: (data: Partial<Omit<User, 'id' | 'email'>>) => request<User>('PATCH', '/auth/me', data),
   changePassword: (current_password: string, new_password: string) =>
     request<void>('POST', '/auth/password', { current_password, new_password }),
   deleteMe: () => request<void>('DELETE', '/auth/me'),
@@ -117,4 +101,9 @@ export const api = {
 
   overview: (month: string) => request<Overview>('GET', '/reports/overview', undefined, { month }),
   trend: (end: string, months = 6) => request<MonthTotal[]>('GET', '/reports/trend', undefined, { end, months }),
+
+  pushKey: () => request<{ public_key: string }>('GET', '/push/key'),
+  pushSubscribe: (sub: PushSubscriptionJSON) => request<void>('POST', '/push/subscribe', sub),
+  pushUnsubscribe: (endpoint: string) => request<void>('POST', '/push/unsubscribe', { endpoint }),
+  pushTest: () => request<{ sent: number }>('POST', '/push/test'),
 }

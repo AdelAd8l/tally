@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
 import { api, type Category, type Kind } from '../lib/api'
-import { useCategories, useRefreshMoney } from '../lib/hooks'
+import { refreshKeys, useCategories, useRefreshMoney } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
 
 // Muted, print-like colors that sit well on the paper background in both themes.
@@ -78,7 +78,7 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
   }
 
   const done = async () => {
-    await qc.invalidateQueries({ queryKey: ['categories'] })
+    await refreshKeys(qc, ['categories'])
     await refresh()
     onClose()
   }

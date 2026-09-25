@@ -2,11 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import NotificationSettings from '../components/NotificationSettings'
 import PageHeader from '../components/PageHeader'
 import { api } from '../lib/api'
 import { CURRENCIES, currencyLabel } from '../lib/format'
 import { useUser } from '../lib/hooks'
 import { setLang, t, useLang, type Lang } from '../lib/i18n'
+import { clearOutbox } from '../lib/offline'
 
 export default function Settings() {
   const user = useUser()
@@ -32,6 +34,7 @@ export default function Settings() {
   const remove = useMutation({
     mutationFn: api.deleteMe,
     onSuccess: () => {
+      clearOutbox()
       qc.clear()
       qc.setQueryData(['me'], null)
       navigate('/signup')
@@ -50,6 +53,14 @@ export default function Settings() {
         <div className="panel panel-pad">
           <LanguageSwitch value={lang} onChange={setLang} />
         </div>
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-intro">
+          <h3>{t('notify.title')}</h3>
+          <p className="muted">{t('notify.hint')}</p>
+        </div>
+        <NotificationSettings user={user} />
       </section>
 
       <section className="settings-section">

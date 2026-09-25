@@ -1,3 +1,4 @@
+import asyncio
 import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -6,23 +7,27 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import seed
+from . import migrate, notify, seed
 from .config import get_settings
 from .database import Base, engine
-from .routers import accounts, auth, budgets, categories, reports, transactions
+from .routers import accounts, auth, budgets, categories, push, reports, transactions
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(engine)
+    migrate.upgrade(engine)
     if get_settings().demo:
         seed.run(only_if_missing=True)
+    reminders = asyncio.create_task(notify.loop()) if get_settings().notifications else None
     yield
+    if reminders:
+        reminders.cancel()
 
 
 app = FastAPI(title="Tally", version="1.0.0", lifespan=lifespan)
 
-for module in (auth, accounts, categories, transactions, budgets, reports):
+for module in (auth, accounts, categories, transactions, budgets, reports, push):
     app.include_router(module.router)
 
 

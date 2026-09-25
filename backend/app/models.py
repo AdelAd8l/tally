@@ -2,7 +2,18 @@
 
 from datetime import UTC, date, datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, String, UniqueConstraint, delete
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    delete,
+)
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from .database import Base
@@ -20,6 +31,13 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(80))
     password_hash: Mapped[str] = mapped_column(String(255))
     currency: Mapped[str] = mapped_column(String(3), default="USD")
+    # Notifications: sent in the user's time zone and language.
+    timezone: Mapped[str] = mapped_column(String(64), default="Africa/Cairo")
+    lang: Mapped[str] = mapped_column(String(2), default="en")
+    notify_budgets: Mapped[bool] = mapped_column(Boolean, default=True)  # at 80% and 100% of a budget
+    daily_reminder: Mapped[bool] = mapped_column(Boolean, default=True)  # if nothing was logged today
+    daily_time: Mapped[str] = mapped_column(String(5), default="21:00")
+    monthly_summary: Mapped[bool] = mapped_column(Boolean, default=True)  # on the 1st, about last month
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -79,6 +97,44 @@ class Budget(Base):
     amount: Mapped[int] = mapped_column(Integer)
 
 
+def _user_fk():
+    return mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+
+
+class PushSubscription(Base):
+    """One browser/phone that agreed to receive notifications (Web Push)."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = _user_fk()
+    endpoint: Mapped[str] = mapped_column(String(1000), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class SentNotice(Base):
+    """Remembers which notifications went out, so each is sent once (even with several workers)."""
+
+    __tablename__ = "sent_notices"
+    __table_args__ = (UniqueConstraint("user_id", "key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = _user_fk()
+    key: Mapped[str] = mapped_column(String(80))
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+
+
+class AppKey(Base):
+    """Server-wide secrets generated on first use (the VAPID key pair for Web Push)."""
+
+    __tablename__ = "app_keys"
+
+    name: Mapped[str] = mapped_column(String(40), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
+
+
 def delete_user(db: Session, user: User) -> None:
     """Remove a user and all their data.
 
@@ -87,5 +143,7 @@ def delete_user(db: Session, user: User) -> None:
     """
     db.execute(delete(Transaction).where(Transaction.user_id == user.id))
     db.execute(delete(Budget).where(Budget.user_id == user.id))
+    db.execute(delete(PushSubscription).where(PushSubscription.user_id == user.id))
+    db.execute(delete(SentNotice).where(SentNotice.user_id == user.id))
     db.delete(user)
     db.commit()

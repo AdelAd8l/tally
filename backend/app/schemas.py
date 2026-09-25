@@ -2,10 +2,12 @@
 
 from datetime import date
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 Kind = Literal["expense", "income"]
+Lang = Literal["en", "ar"]
 AccountKind = Literal["checking", "savings", "cash", "credit"]
 HexColor = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
 
@@ -34,11 +36,34 @@ class UserOut(ORM):
     email: str
     name: str
     currency: str
+    timezone: str
+    lang: Lang
+    notify_budgets: bool
+    daily_reminder: bool
+    daily_time: str
+    monthly_summary: bool
 
 
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
     currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
+    timezone: str | None = Field(default=None, max_length=64)
+    lang: Lang | None = None
+    notify_budgets: bool | None = None
+    daily_reminder: bool | None = None
+    daily_time: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    monthly_summary: bool | None = None
+
+    @field_validator("timezone")
+    @classmethod
+    def valid_timezone(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        try:
+            ZoneInfo(v)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("Unknown time zone") from None
+        return v
 
 
 class PasswordChange(BaseModel):
