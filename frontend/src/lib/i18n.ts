@@ -168,6 +168,11 @@ const en = {
   'categories.new': 'New category',
   'categories.edit': 'Edit category',
   'categories.color': 'Color',
+  'categories.colorPreset': 'Suggested',
+  'categories.colorCustom': 'Custom',
+  'categories.colorWheel': 'Color wheel',
+  'categories.colorHex': 'Hex code',
+  'categories.colorHexInvalid': 'Use a hex code like #5B8C5A.',
   'categories.confirmDelete': 'Delete "{name}"? Its transactions will become Uncategorized.',
 
   // settings
@@ -442,6 +447,11 @@ const ar: Record<Key, string> = {
   'categories.new': 'فئة جديدة',
   'categories.edit': 'تعديل الفئة',
   'categories.color': 'اللون',
+  'categories.colorPreset': 'ألوان مقترحة',
+  'categories.colorCustom': 'لون مخصص',
+  'categories.colorWheel': 'دائرة الألوان',
+  'categories.colorHex': 'كود اللون (Hex)',
+  'categories.colorHexInvalid': 'اكتب كود لون مثل #5B8C5A.',
   'categories.confirmDelete': 'حذف «{name}»؟ ستصبح معاملاتها بدون فئة.',
 
   'settings.profile': 'الملف الشخصي',

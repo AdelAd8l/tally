@@ -1,17 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import ColorField from '../components/ColorField'
 import Modal from '../components/Modal'
+import { PALETTE } from '../components/palette'
 import PageHeader from '../components/PageHeader'
 import { api, type Category, type Kind } from '../lib/api'
 import { refreshKeys, useCategories, useRefreshMoney } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
-
-// Muted, print-like colors that sit well on the paper background in both themes.
-const PALETTE = [
-  '#5B8C5A', '#3F7D5C', '#4A9A9A', '#5A7FA8', '#4F6D8F', '#8A6FA0',
-  '#A0525B', '#C0784A', '#B89B4A', '#6B7B4A', '#7A8B99', '#8A8F98',
-]
 
 export default function Categories() {
   const { data: categories = [] } = useCategories()
@@ -119,22 +115,8 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
             required
           />
         </label>
-        <fieldset className="field palette">
-          <legend>{t('categories.color')}</legend>
-          <div className="palette-grid">
-            {PALETTE.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className="palette-chip"
-                style={{ background: c }}
-                aria-label={c}
-                aria-pressed={color.toLowerCase() === c.toLowerCase()}
-                onClick={() => setColor(c)}
-              />
-            ))}
-          </div>
-        </fieldset>
+        {/* keyed so it starts over (suggested or custom) for each category opened */}
+        <ColorField key={key ?? ''} value={color} onChange={setColor} />
         {save.error && <p className="form-error">{save.error.message}</p>}
         <footer className="modal-actions">
           {existing && (
