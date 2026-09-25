@@ -12,6 +12,17 @@ AccountKind = Literal["checking", "savings", "cash", "credit"]
 HexColor = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
 
 
+def check_timezone(v: str | None) -> str | None:
+    """An IANA zone like Africa/Cairo or Asia/Dubai (what notifications are timed in)."""
+    if v is None:
+        return v
+    try:
+        ZoneInfo(v)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise ValueError("Unknown time zone") from None
+    return v
+
+
 class ORM(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -24,6 +35,13 @@ class RegisterIn(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     password: str = Field(min_length=8, max_length=128)
     currency: str = Field(default="USD", pattern=r"^[A-Z]{3}$")
+    # The phone's time zone at sign-up; changed later only from Settings.
+    timezone: str | None = Field(default=None, max_length=64)
+
+    @field_validator("timezone")
+    @classmethod
+    def valid_timezone(cls, v: str | None) -> str | None:
+        return check_timezone(v)
 
 
 class LoginIn(BaseModel):
@@ -59,8 +77,7 @@ class UserUpdate(BaseModel):
     @field_validator("timezone")
     @classmethod
     def valid_timezone(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
+        return check_timezone(v)
         try:
             ZoneInfo(v)
         except (ZoneInfoNotFoundError, ValueError):

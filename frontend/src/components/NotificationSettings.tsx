@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { api, type User } from '../lib/api'
 import { t, type Key } from '../lib/i18n'
 import { disablePush, enablePush, pushState, type PushState } from '../lib/push'
+import TimeZoneField from './TimeZoneField'
 
-type Prefs = Pick<User, 'notify_budgets' | 'daily_reminder' | 'daily_time' | 'monthly_summary'>
+type Prefs = Pick<User, 'notify_budgets' | 'daily_reminder' | 'daily_time' | 'monthly_summary' | 'timezone'>
 const pick = (u: User): Prefs => ({
   notify_budgets: u.notify_budgets,
   daily_reminder: u.daily_reminder,
   daily_time: u.daily_time,
   monthly_summary: u.monthly_summary,
+  timezone: u.timezone,
 })
 
 /** Settings → Notifications: turn them on for this phone and choose which ones to get. */
@@ -109,7 +111,7 @@ export default function NotificationSettings({ user }: { user: User }) {
         )}
       </div>
       {option('monthly_summary', 'notify.monthly', 'notify.monthlyHint')}
-      <p className="faint help">{t('notify.zone', { zone: user.timezone })}</p>
+      <TimeZoneField value={prefs.timezone} onChange={(timezone) => change({ timezone })} />
 
       <div className="form-foot">
         {test.isSuccess && <span className="faint">{t('notify.testSent')}</span>}

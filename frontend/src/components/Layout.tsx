@@ -7,7 +7,7 @@ import { currentMonth } from '../lib/format'
 import { ComposerContext, MonthContext } from '../lib/hooks'
 import { t, useLang, type Key } from '../lib/i18n'
 import { clearOutbox } from '../lib/offline'
-import { browserTimeZone, detachPush, refreshPush } from '../lib/push'
+import { detachPush, refreshPush } from '../lib/push'
 import Icon, { type IconName } from './Icon'
 import Logo from './Logo'
 import SyncStatus from './SyncStatus'
@@ -48,16 +48,17 @@ export default function Layout({ user }: { user: User }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [openComposer])
 
-  // Notifications are written on the server, so it needs this phone's time zone and language.
+  // Notifications are written on the server in the account's language, so keep it in step.
+  // (The time zone is NOT copied from each device: it's a setting, so a laptop in one
+  // country and a phone in another can't keep flipping it. See Settings → Notifications.)
   const lang = useLang()
   useEffect(() => {
-    const timezone = browserTimeZone()
-    if (!navigator.onLine || (user.timezone === timezone && user.lang === lang)) return
+    if (!navigator.onLine || user.lang === lang) return
     api
-      .updateMe({ timezone, lang })
+      .updateMe({ lang })
       .then((u) => qc.setQueryData(['me'], u))
       .catch(() => {})
-  }, [user.timezone, user.lang, lang, qc])
+  }, [user.lang, lang, qc])
   useEffect(() => void refreshPush(), [user.id])
 
   async function signOut() {

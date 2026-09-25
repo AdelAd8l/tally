@@ -6,6 +6,7 @@ import Logo from '../components/Logo'
 import { api } from '../lib/api'
 import { CURRENCIES, currencyLabel, guessCurrency } from '../lib/format'
 import { displayName, setLang, t, useLang } from '../lib/i18n'
+import { browserTimeZone } from '../lib/push'
 import { LanguageSwitch } from './Settings'
 
 const RECEIPT = [
@@ -39,7 +40,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
       creds
         ? api.login(creds.email, creds.password)
         : signup
-          ? api.register(name, email, password, currency)
+          ? api.register(name, email, password, currency, browserTimeZone())
           : api.login(email, password),
     onSuccess: (user) => {
       qc.setQueryData(['me'], user)

@@ -8,12 +8,49 @@
   "background_color": "#F6F4EE",
   "theme_color": "#1F4D3A",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "Transactions", "url": "/transactions" },
-    { "name": "Budgets", "url": "/budgets" }
+    {
+      "name": "Transactions",
+      "short_name": "Transactions",
+      "url": "/transactions",
+      "icons": [
+        {
+          "src": "/shortcut-transactions.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any"
+        }
+      ]
+    },
+    {
+      "name": "Budgets",
+      "short_name": "Budgets",
+      "url": "/budgets",
+      "icons": [
+        {
+          "src": "/shortcut-budgets.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any"
+        }
+      ]
+    }
   ]
 }

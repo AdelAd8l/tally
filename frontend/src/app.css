@@ -1519,3 +1519,38 @@ code {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* Summary figures: columns may shrink below their content, and long amounts
+   (Arabic numbers, big net worth) scale down instead of pushing the page sideways. */
+@media (max-width: 1000px) {
+  .figures:not(.figures-3) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .figure {
+    min-width: 0;
+  }
+
+  .figures:not(.figures-3) .figure:nth-child(even) {
+    padding-inline-start: 12px;
+  }
+
+  .figure-value {
+    font-size: clamp(1.15rem, 6.4vw, 1.7rem);
+    overflow-wrap: anywhere;
+  }
+}
+
+.zone-differs {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 0.85rem;
+}
+
+.zone-differs .link-quiet {
+  font-weight: 600;
+}

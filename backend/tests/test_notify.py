@@ -185,3 +185,13 @@ def test_migration_adds_columns_to_an_old_database(tmp_path):
     assert {"timezone", "lang", "notify_budgets", "daily_reminder", "daily_time", "monthly_summary"} <= columns
     with engine.connect() as conn:
         assert conn.execute(text("SELECT daily_time, lang FROM users")).one() == ("21:00", "en")
+
+
+def test_signup_keeps_the_phones_time_zone(client):
+    body = {"email": "dubai@example.com", "name": "D", "password": "password123", "timezone": "Asia/Dubai"}
+    assert client.post("/api/auth/register", json=body).json()["timezone"] == "Asia/Dubai"
+    client.post("/api/auth/logout")
+    bad = {**body, "email": "mars@example.com", "timezone": "Mars/Base"}
+    assert client.post("/api/auth/register", json=bad).status_code == 422
+    plain = {k: v for k, v in body.items() if k != "timezone"} | {"email": "cairo@example.com"}
+    assert client.post("/api/auth/register", json=plain).json()["timezone"] == "Africa/Cairo"
