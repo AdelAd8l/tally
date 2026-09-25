@@ -6,7 +6,6 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Date,
-    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -16,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
-from .database import Base
+from .database import Base, UTCDateTime
 
 
 def _now() -> datetime:
@@ -49,7 +48,7 @@ class User(Base):
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
     # Bumped when the password changes, so sessions signed with the old one stop working.
     session_version: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_now)
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     categories: Mapped[list["Category"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -67,7 +66,7 @@ class Account(Base):
     name: Mapped[str] = mapped_column(String(60))
     kind: Mapped[str] = mapped_column(String(20), default="checking")
     opening_balance: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_now)
 
     user: Mapped[User] = relationship(back_populates="accounts")
 
@@ -99,7 +98,7 @@ class Transaction(Base):
     amount: Mapped[int] = mapped_column(Integer)
     occurred_on: Mapped[date] = mapped_column(Date, index=True)
     note: Mapped[str] = mapped_column(String(200), default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_now)
 
 
 class Budget(Base):
@@ -126,7 +125,7 @@ class PushSubscription(Base):
     endpoint: Mapped[str] = mapped_column(String(1000), unique=True)
     p256dh: Mapped[str] = mapped_column(String(200))
     auth: Mapped[str] = mapped_column(String(100))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_now)
 
 
 class SentNotice(Base):
@@ -138,7 +137,7 @@ class SentNotice(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = _user_fk()
     key: Mapped[str] = mapped_column(String(80))
-    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, index=True)
+    sent_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_now, index=True)
 
 
 class AppKey(Base):
