@@ -34,7 +34,7 @@ def register(data: RegisterIn, response: Response, db: Session = Depends(get_db)
     db.add(user)
     create_starter_data(db, user)
     db.commit()
-    set_session_cookie(response, user.id)
+    set_session_cookie(response, user)
     return user
 
 
@@ -43,7 +43,7 @@ def login(data: LoginIn, response: Response, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == data.email.lower()))
     if user is None or not verify_password(data.password, user.password_hash):
         raise HTTPException(401, "Email or password is incorrect")
-    set_session_cookie(response, user.id)
+    set_session_cookie(response, user)
     return user
 
 
@@ -66,11 +66,19 @@ def update_me(data: UserUpdate, user: User = Depends(current_user), db: Session 
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
-def change_password(data: PasswordChange, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def change_password(
+    data: PasswordChange, response: Response, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
     if not verify_password(data.current_password, user.password_hash):
         raise HTTPException(400, "Current password is incorrect")
+    if data.new_password == data.current_password:
+        raise HTTPException(422, "Choose a password different from the current one")
     user.password_hash = hash_password(data.new_password)
+    user.must_change_password = False
+    # Sign out every other device; this one gets a fresh session.
+    user.session_version = (user.session_version or 0) + 1
     db.commit()
+    set_session_cookie(response, user)
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)

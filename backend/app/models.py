@@ -38,6 +38,12 @@ class User(Base):
     daily_reminder: Mapped[bool] = mapped_column(Boolean, default=True)  # if nothing was logged today
     daily_time: Mapped[str] = mapped_column(String(5), default="21:00")
     monthly_summary: Mapped[bool] = mapped_column(Boolean, default=True)  # on the 1st, about last month
+    # Admin: can see, edit and delete every account (Admin page).
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Set for the first admin sign-in and after an admin resets a password.
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Bumped when the password changes, so sessions signed with the old one stop working.
+    session_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     accounts: Mapped[list["Account"]] = relationship(back_populates="user", cascade="all, delete-orphan")

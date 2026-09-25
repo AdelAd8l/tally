@@ -22,6 +22,8 @@ const NAV: { to: string; label: Key; icon: IconName }[] = [
   { to: '/settings', label: 'nav.settings', icon: 'gear' },
 ]
 
+const ADMIN_NAV = { to: '/admin', label: 'nav.admin', icon: 'shield' } as const
+
 export default function Layout({ user }: { user: User }) {
   const [month, setMonth] = useState(currentMonth)
   const [composer, setComposer] = useState<{ kind?: Kind; editing?: Transaction; key: number } | null>(null)
@@ -81,7 +83,7 @@ export default function Layout({ user }: { user: User }) {
               </button>
             </div>
             <nav className="nav" aria-label={t('nav.main')}>
-              {NAV.map((item) => (
+              {(user.is_admin ? [...NAV, ADMIN_NAV] : NAV).map((item) => (
                 <NavLink key={item.to} to={item.to} end={item.to === '/'} className="nav-link">
                   <Icon name={item.icon} />
                   <span>{t(item.label)}</span>

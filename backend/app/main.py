@@ -10,13 +10,14 @@ from fastapi.staticfiles import StaticFiles
 from . import migrate, notify, seed
 from .config import get_settings
 from .database import Base, engine
-from .routers import accounts, auth, budgets, categories, push, reports, transactions
+from .routers import accounts, admin, auth, budgets, categories, push, reports, transactions
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(engine)
     migrate.upgrade(engine)
+    admin.ensure_admin()
     if get_settings().demo:
         seed.run(only_if_missing=True)
     reminders = asyncio.create_task(notify.loop()) if get_settings().notifications else None
@@ -27,7 +28,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Tally", version="1.0.0", lifespan=lifespan)
 
-for module in (auth, accounts, categories, transactions, budgets, reports, push):
+for module in (auth, accounts, categories, transactions, budgets, reports, push, admin):
     app.include_router(module.router)
 
 

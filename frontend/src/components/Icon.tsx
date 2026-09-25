@@ -13,6 +13,8 @@ const paths = {
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',
   upload: 'M12 15V4M7.5 8.5 12 4l4.5 4.5M4 15v4h16v-4',
   download: 'M12 4v11M7.5 10.5 12 15l4.5-4.5M4 15v4h16v-4',
+  trash: 'M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3',
+  shield: 'M12 3 4.5 6v5.5c0 4.4 3.1 8.2 7.5 9.5 4.4-1.3 7.5-5.1 7.5-9.5V6z',
   logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
 } as const
 

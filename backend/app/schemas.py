@@ -36,6 +36,8 @@ class UserOut(ORM):
     email: str
     name: str
     currency: str
+    is_admin: bool
+    must_change_password: bool
     timezone: str
     lang: Lang
     notify_budgets: bool

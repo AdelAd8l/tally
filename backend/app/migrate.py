@@ -16,6 +16,9 @@ COLUMNS = [
     ("users", "daily_reminder", "BOOLEAN NOT NULL DEFAULT TRUE"),
     ("users", "daily_time", "VARCHAR(5) NOT NULL DEFAULT '21:00'"),
     ("users", "monthly_summary", "BOOLEAN NOT NULL DEFAULT TRUE"),
+    ("users", "is_admin", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
+    ("users", "session_version", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 

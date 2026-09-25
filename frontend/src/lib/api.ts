@@ -17,6 +17,23 @@ export interface User {
   daily_reminder: boolean
   daily_time: string
   monthly_summary: boolean
+  is_admin: boolean
+  must_change_password: boolean
+}
+export interface AdminUser {
+  id: number
+  email: string
+  name: string
+  currency: string
+  is_admin: boolean
+  must_change_password: boolean
+  created_at: string
+  accounts: number
+  transactions: number
+  budgets: number
+}
+export type AdminUserUpdate = Partial<Pick<AdminUser, 'name' | 'email' | 'currency' | 'is_admin'>> & {
+  new_password?: string
 }
 export interface Account { id: number; name: string; kind: AccountKind; opening_balance: number; balance: number }
 export interface Category { id: number; name: string; kind: Kind; color: string }
@@ -54,7 +71,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   }
   // Account and notification calls need the server's answer, and a file upload can't be
   // stored for later: these never go to the outbox. Everything else can wait for a signal.
-  if (path.startsWith('/auth/') || path.startsWith('/push/') || body instanceof FormData) {
+  if (['/auth/', '/push/', '/admin/'].some((p) => path.startsWith(p)) || body instanceof FormData) {
     return send<T>(method, path, body, query)
   }
   return write<T>(method, path, body)
@@ -106,4 +123,8 @@ export const api = {
   pushSubscribe: (sub: PushSubscriptionJSON) => request<void>('POST', '/push/subscribe', sub),
   pushUnsubscribe: (endpoint: string) => request<void>('POST', '/push/unsubscribe', { endpoint }),
   pushTest: () => request<{ sent: number }>('POST', '/push/test'),
+
+  adminUsers: (q: string) => request<AdminUser[]>('GET', '/admin/users', undefined, { q }),
+  adminUpdateUser: (id: number, data: AdminUserUpdate) => request<AdminUser>('PATCH', `/admin/users/${id}`, data),
+  adminDeleteUser: (id: number) => request<void>('DELETE', `/admin/users/${id}`),
 }

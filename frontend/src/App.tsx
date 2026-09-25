@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Layout from './components/Layout'
+import PasswordGate from './components/PasswordGate'
 import { useMe } from './lib/hooks'
 import { useLang } from './lib/i18n'
 import Accounts from './pages/Accounts'
+import Admin from './pages/Admin'
 import AuthPage from './pages/AuthPage'
 import Budgets from './pages/Budgets'
 import Categories from './pages/Categories'
@@ -28,6 +30,9 @@ export default function App() {
     )
   }
 
+  // A temporary password (first admin sign-in, or reset by an admin) must be replaced first.
+  if (user.must_change_password) return <PasswordGate key={lang} user={user} />
+
   return (
     <Routes key={lang}>
       <Route element={<Layout user={user} />}>
@@ -37,6 +42,7 @@ export default function App() {
         <Route path="accounts" element={<Accounts />} />
         <Route path="categories" element={<Categories />} />
         <Route path="settings" element={<Settings />} />
+        {user.is_admin && <Route path="admin" element={<Admin />} />}
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
