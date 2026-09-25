@@ -1,13 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 
 import { api, type Kind, type Transaction, type User } from '../lib/api'
 import { currentMonth } from '../lib/format'
 import { ComposerContext, MonthContext } from '../lib/hooks'
 import { t, useLang, type Key } from '../lib/i18n'
-import { clearOutbox } from '../lib/offline'
-import { browserTimeZone, detachPush, pushState, refreshPush } from '../lib/push'
+import { browserTimeZone, pushState, refreshPush } from '../lib/push'
+import { useSignOut } from '../lib/signout'
 import Icon, { type IconName } from './Icon'
 import Logo from './Logo'
 import SyncStatus from './SyncStatus'
@@ -28,7 +28,7 @@ export default function Layout({ user }: { user: User }) {
   const [month, setMonth] = useState(currentMonth)
   const [composer, setComposer] = useState<{ kind?: Kind; editing?: Transaction; key: number } | null>(null)
   const qc = useQueryClient()
-  const navigate = useNavigate()
+  const signOut = useSignOut()
 
   const openComposer = useCallback((preset?: { kind?: Kind; editing?: Transaction }) => {
     setComposer({ ...preset, key: Date.now() })
@@ -72,14 +72,6 @@ export default function Layout({ user }: { user: User }) {
       .catch(() => {})
   }, [user.timezone_auto, user.timezone, qc])
 
-  async function signOut() {
-    await detachPush()
-    await api.logout()
-    clearOutbox()
-    qc.clear()
-    qc.setQueryData(['me'], null)
-    navigate('/login')
-  }
 
   return (
     <MonthContext.Provider value={{ month, setMonth }}>
