@@ -11,6 +11,7 @@ import Privacy from './pages/Privacy'
 import Budgets from './pages/Budgets'
 import Categories from './pages/Categories'
 import Overview from './pages/Overview'
+import Reports from './pages/Reports'
 import Settings from './pages/Settings'
 import Transactions from './pages/Transactions'
 
@@ -42,6 +43,7 @@ export default function App() {
       <Route element={<Layout user={user} />}>
         <Route index element={<Overview />} />
         <Route path="transactions" element={<Transactions />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="budgets" element={<Budgets />} />
         <Route path="accounts" element={<Accounts />} />
         <Route path="categories" element={<Categories />} />

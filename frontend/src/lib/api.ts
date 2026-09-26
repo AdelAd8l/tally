@@ -49,6 +49,14 @@ export interface Account {
   balance: number
 }
 export interface Category { id: number; name: string; kind: Kind; color: string }
+export interface Insights {
+  months: { month: string; income: number; expense: number; net_worth: number }[]
+  categories: { month: string; category_id: number | null; amount: number }[]
+  accounts: { account_id: number; income: number; expense: number }[]
+  /** Average spent per day, Monday = 0. */
+  weekdays: number[]
+  pace: { month: string; days: number; current: number[]; previous: number[] }
+}
 export interface Transaction {
   id: number
   account_id: number
@@ -130,6 +138,8 @@ export const api = {
 
   overview: (month: string) => request<Overview>('GET', '/reports/overview', undefined, { month }),
   trend: (end: string, months = 6) => request<MonthTotal[]>('GET', '/reports/trend', undefined, { end, months }),
+  insights: (end: string, months: number) =>
+    request<Insights>('GET', '/reports/insights', undefined, { end, months }),
 
   pushKey: () => request<{ public_key: string }>('GET', '/push/key'),
   pushSubscribe: (sub: PushSubscriptionJSON) => request<void>('POST', '/push/subscribe', sub),

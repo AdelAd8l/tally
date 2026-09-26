@@ -213,3 +213,39 @@ class MonthTotal(BaseModel):
     month: str
     income: int
     expense: int
+
+
+class InsightMonth(BaseModel):
+    month: str
+    income: int
+    expense: int
+    net_worth: int  # at the end of the month
+
+
+class InsightCategory(BaseModel):
+    month: str
+    category_id: int | None
+    amount: int
+
+
+class InsightAccount(BaseModel):
+    account_id: int
+    income: int
+    expense: int
+
+
+class Pace(BaseModel):
+    """Spending added up day by day: the chosen month so far, and the whole month before it."""
+
+    month: str
+    days: int  # days in the chosen month
+    current: list[int]  # running total for day 1, 2, … up to today (or the month's end)
+    previous: list[int]
+
+
+class Insights(BaseModel):
+    months: list[InsightMonth]
+    categories: list[InsightCategory]
+    accounts: list[InsightAccount]
+    weekdays: list[int]  # average spent per day, Monday = 0
+    pace: Pace

@@ -38,3 +38,49 @@ def test_budgets(client, ids):
     assert rows == [{"id": b["id"], "category_id": ids["Dining"], "amount": 25000, "spent": 4000}]
     assert client.put("/api/budgets", json={"category_id": ids["Salary"], "amount": 1}).status_code == 422
     assert client.delete(f"/api/budgets/{b['id']}").status_code == 204
+
+
+def test_insights(client, ids, monkeypatch):
+    from datetime import date
+
+    from app.routers import reports
+
+    monkeypatch.setattr(reports, "_today", lambda user: date(2026, 3, 10))  # a Tuesday
+    card = client.post("/api/accounts", json={"name": "Card", "kind": "credit", "opening_balance": 0}).json()
+    add_tx(client, ids, "Salary", 500000, kind="income", day="2026-01-01")
+    add_tx(client, ids, "Groceries", 20000, day="2026-01-15")
+    add_tx(client, ids, "Dining", 3000, day="2026-02-02")  # a Monday
+    add_tx(client, ids, "Dining", 1000, day="2026-02-27")
+    add_tx(client, ids, "Groceries", 4000, day="2026-03-02")  # a Monday
+    add_tx(client, ids, None, 600, day="2026-03-09")  # uncategorized, a Monday
+    r = client.post("/api/transactions", json={
+        "account_id": card["id"], "category_id": ids["Dining"], "kind": "expense",
+        "amount": 900, "occurred_on": "2026-03-03", "note": "",
+    })
+    assert r.status_code == 201
+
+    got = client.get("/api/reports/insights", params={"end": "2026-03", "months": 2}).json()
+    # January is before the range: it only counts toward the starting net worth (480000)
+    assert [(m["month"], m["income"], m["expense"], m["net_worth"]) for m in got["months"]] == [
+        ("2026-02", 0, 4000, 476000),
+        ("2026-03", 0, 5500, 470500),
+    ]
+    assert {(c["month"], c["category_id"], c["amount"]) for c in got["categories"]} == {
+        ("2026-02", ids["Dining"], 4000),
+        ("2026-03", ids["Groceries"], 4000),
+        ("2026-03", ids["Dining"], 900),
+        ("2026-03", None, 600),
+    }
+    by_account = {a["account_id"]: (a["income"], a["expense"]) for a in got["accounts"]}
+    assert by_account == {ids["account"]: (0, 8600), card["id"]: (0, 900)}
+    # Mondays from Feb 1 to Mar 10: Feb 2, 9, 16, 23, Mar 2, 9 -> 6; spent 3000 + 4000 + 600
+    assert got["weekdays"][0] == round(7600 / 6)
+    pace = got["pace"]
+    assert (pace["month"], pace["days"], len(pace["current"]), len(pace["previous"])) == ("2026-03", 31, 10, 28)
+    assert pace["current"][1] == 4000 and pace["current"][-1] == 5500
+    assert pace["previous"][0] == 0 and pace["previous"][1] == 3000 and pace["previous"][-1] == 4000
+
+
+def test_insights_for_a_future_month_has_no_pace_yet(client, ids):
+    got = client.get("/api/reports/insights", params={"end": "2999-01", "months": 1}).json()
+    assert got["pace"]["current"] == [] and got["weekdays"] == [0] * 7

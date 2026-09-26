@@ -49,7 +49,7 @@ export function refreshKeys(qc: QueryClient, keys: string[]) {
 /** Invalidate everything derived from transactions after a write. */
 export function useRefreshMoney() {
   const qc = useQueryClient()
-  return () => refreshKeys(qc, ['transactions', 'overview', 'trend', 'budgets', 'accounts'])
+  return () => refreshKeys(qc, ['transactions', 'overview', 'trend', 'insights', 'budgets', 'accounts'])
 }
 
 // ---- selected month, shared by Overview / Transactions / Budgets ---------------

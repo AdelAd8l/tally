@@ -16,6 +16,7 @@ import TransactionForm from './TransactionForm'
 const NAV: { to: string; label: Key; icon: IconName }[] = [
   { to: '/', label: 'nav.overview', icon: 'overview' },
   { to: '/transactions', label: 'nav.transactions', icon: 'list' },
+  { to: '/reports', label: 'nav.reports', icon: 'chart' },
   { to: '/budgets', label: 'nav.budgets', icon: 'target' },
   { to: '/accounts', label: 'nav.accounts', icon: 'wallet' },
   { to: '/categories', label: 'nav.categories', icon: 'tag' },
