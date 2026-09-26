@@ -5,7 +5,7 @@
 
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 
-import { compact, mirror, type Mirror } from '../lib/chart'
+import { compact, mirror, numClass, type Mirror } from '../lib/chart'
 import { t } from '../lib/i18n'
 
 // ---- shared helpers ---------------------------------------------------------------------
@@ -87,7 +87,7 @@ export function Readout({ title, items }: { title: string; items: ReadoutItem[] 
       {items.map((it) => (
         <span key={it.label} className={it.muted ? 'is-muted' : undefined}>
           {it.color && <i className={`chart-key chart-key-${it.key ?? 'box'}`} style={{ background: it.color }} />}
-          <b className="num">{it.value}</b> {it.label}
+          <b className={numClass(it.value)}>{it.value}</b> {it.label}
         </span>
       ))}
     </div>
