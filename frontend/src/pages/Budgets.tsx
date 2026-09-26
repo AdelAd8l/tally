@@ -213,9 +213,9 @@ function BudgetDialog({ editing, options, onClose }: DialogProps) {
           <label className="field">
             <span>{t('common.category')}</span>
             <SwatchSelect
-              color={byId.get(Number(categoryId || options[0]?.id))?.color}
+              colorOf={(v) => byId.get(Number(v))?.color}
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={setCategoryId}
             >
               {options.map((c) => (
                 <option key={c.id} value={c.id}>

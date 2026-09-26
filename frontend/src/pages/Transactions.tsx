@@ -78,11 +78,9 @@ export default function Transactions() {
         </div>
         <SwatchSelect
           className="select select-auto"
-          color={
-            categoryId === '0' ? UNCATEGORIZED.color : categories.find((c) => String(c.id) === categoryId)?.color
-          }
+          colorOf={(v) => (v === '0' ? UNCATEGORIZED.color : categories.find((c) => String(c.id) === v)?.color)}
           value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
+          onChange={setCategoryId}
         >
           <option value="">{t('txs.allCategories')}</option>
           <option value="0">{t('common.uncategorized')}</option>
@@ -95,9 +93,9 @@ export default function Transactions() {
         {accounts.length > 1 && (
           <SwatchSelect
             className="select select-auto"
-            color={accounts.find((a) => String(a.id) === accountId)?.color}
+            colorOf={(v) => accounts.find((a) => String(a.id) === v)?.color}
             value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
+            onChange={setAccountId}
           >
             <option value="">{t('txs.allAccounts')}</option>
             {accounts.map((a) => (
@@ -244,9 +242,9 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <label className="field">
             <span>{t('import.into')}</span>
             <SwatchSelect
-              color={accounts.find((a) => String(a.id) === (accountId || String(accounts[0]?.id ?? '')))?.color}
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              colorOf={(v) => accounts.find((a) => String(a.id) === v)?.color}
+              value={accountId || String(accounts[0]?.id ?? '')}
+              onChange={setAccountId}
             >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>

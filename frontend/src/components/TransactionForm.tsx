@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 
 import { api, type Kind, type Transaction } from '../lib/api'
 import { centsToInput, parseAmount, todayISO } from '../lib/format'
-import { useAccounts, useCategories, useRefreshMoney, useUser } from '../lib/hooks'
+import { UNCATEGORIZED, useAccounts, useCategories, useRefreshMoney, useUser } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
 import Modal from './Modal'
 import SwatchSelect from './SwatchSelect'
@@ -108,9 +108,9 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
           <label className="field">
             <span>{t('common.category')}</span>
             <SwatchSelect
-              color={categories.find((c) => String(c.id) === categoryId)?.color}
+              colorOf={(v) => (v ? categories.find((c) => String(c.id) === v)?.color : UNCATEGORIZED.color)}
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={setCategoryId}
             >
               <option value="">{t('common.uncategorized')}</option>
               {choices.map((c) => (
@@ -129,9 +129,9 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
         <label className="field">
           <span>{t('common.account')}</span>
           <SwatchSelect
-            color={accounts.find((a) => String(a.id) === (accountId || String(accounts[0]?.id ?? '')))?.color}
+            colorOf={(v) => accounts.find((a) => String(a.id) === v)?.color}
             value={accountId || String(accounts[0]?.id ?? '')}
-            onChange={(e) => setAccountId(e.target.value)}
+            onChange={setAccountId}
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
