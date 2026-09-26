@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
 import type { MonthTotal } from '../lib/api'
+import { mirror } from '../lib/chart'
 import { compactNumber, money, monthName } from '../lib/format'
 import { useUser } from '../lib/hooks'
 import { t } from '../lib/i18n'
@@ -33,6 +34,10 @@ export default function TrendChart({ data, selected }: { data: MonthTotal[]; sel
   const slot = innerW / data.length
   const bar = Math.min(16, slot / 4.5)
   const y = (v: number) => PAD.top + innerH - (v / top) * innerH
+  const m = mirror(W) // Arabic: months run right to left, amounts on the right
+  // Long month names (Arabic) on a narrow screen: label every other month, always the newest.
+  const labelWidth = Math.max(...data.map((d) => monthName(d.month, 'short').length)) * 6.4 + 10
+  const every = slot < labelWidth ? 2 : 1
 
   const active = hover ?? data.findIndex((d) => d.month === selected)
   const focus = data[active]
@@ -56,9 +61,9 @@ export default function TrendChart({ data, selected }: { data: MonthTotal[]; sel
       <svg height={H} viewBox={`0 0 ${W} ${H}`} className="trend-svg" role="img" aria-label={t('chart.label')}>
         {ticks.map((tick) => (
           <g key={tick}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className={tick === 0 ? 'axis' : 'grid'} />
-            <text x={PAD.left - 10} y={y(tick)} dy="0.32em" textAnchor="end" className="tick">
-              {compactNumber(tick / 100)}
+            <line x1={m.x(PAD.left)} x2={m.x(W - PAD.right)} y1={y(tick)} y2={y(tick)} className={tick === 0 ? 'axis' : 'grid'} />
+            <text x={m.x(PAD.left - 10)} y={y(tick)} dy="0.32em" textAnchor={m.anchor('end')} className="tick">
+              {m.text(compactNumber(tick / 100))}
             </text>
           </g>
         ))}
@@ -71,9 +76,9 @@ export default function TrendChart({ data, selected }: { data: MonthTotal[]; sel
               onMouseLeave={() => setHover(null)}
               className={i === active ? 'col is-active' : 'col'}
             >
-              <rect x={PAD.left + slot * i} y={PAD.top} width={slot} height={innerH} className="hit" />
+              <rect x={m.box(PAD.left + slot * i, slot)} y={PAD.top} width={slot} height={innerH} className="hit" />
               <rect
-                x={cx - bar - 2}
+                x={m.box(cx - bar - 2, bar - 1.5)}
                 y={y(d.income) + 0.75}
                 width={bar - 1.5}
                 height={Math.max(0, innerH + PAD.top - y(d.income) - 0.75)}
@@ -81,16 +86,18 @@ export default function TrendChart({ data, selected }: { data: MonthTotal[]; sel
                 rx="1.5"
               />
               <rect
-                x={cx + 2}
+                x={m.box(cx + 2, bar)}
                 y={y(d.expense)}
                 width={bar}
                 height={Math.max(0, innerH + PAD.top - y(d.expense))}
                 className="bar-expense"
                 rx="1.5"
               />
-              <text x={cx} y={H - 8} textAnchor="middle" className="tick tick-x">
-                {monthName(d.month, 'short')}
-              </text>
+              {(data.length - 1 - i) % every === 0 && (
+                <text x={m.x(cx)} y={H - 8} textAnchor="middle" className="tick tick-x">
+                  {m.text(monthName(d.month, 'short'))}
+                </text>
+              )}
             </g>
           )
         })}

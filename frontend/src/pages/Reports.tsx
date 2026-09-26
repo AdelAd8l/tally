@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { Columns, LineChart, NumbersTable, type Stack } from '../components/charts'
+import { compact } from '../lib/chart'
 import MonthPicker from '../components/MonthPicker'
 import PageHeader from '../components/PageHeader'
 import { api, type Insights } from '../lib/api'
@@ -14,6 +15,9 @@ const TOP_CATEGORIES = 6 // the rest are folded into "Other"
 const OTHER_COLOR = '#8d8b82'
 // The week as it is lived here: Saturday first. Server weekdays are Monday = 0.
 const WEEK = [5, 6, 0, 1, 2, 3, 4]
+
+/** Axis ticks for amounts kept in cents. */
+const cents = (v: number) => compact(v / 100)
 
 const weekdayName = (monday0: number, style: 'short' | 'long') =>
   new Date(2026, 0, 5 + monday0).toLocaleDateString(locale(), { weekday: style }) // Jan 5 2026 is a Monday
@@ -120,6 +124,7 @@ function ReportBody({ data }: { data: Insights }) {
             xLabel={(i) => monthLabels[i]}
             xTick={() => true}
             format={fmt}
+            tick={cents}
             title={(i) => monthName(data.months[i].month)}
             initial={last}
             markers
@@ -142,6 +147,7 @@ function ReportBody({ data }: { data: Insights }) {
                 values={stackValues}
                 stacks={stacks}
                 format={fmt}
+                tick={cents}
                 title={(i) => monthName(data.months[i].month)}
                 initial={last}
                 ariaLabel={t('reports.byCategory')}
@@ -191,6 +197,7 @@ function ReportBody({ data }: { data: Insights }) {
             values={weekValues}
             stacks={[{ label: t('reports.averageDay'), color: 'var(--accent)' }]}
             format={fmt}
+            tick={cents}
             title={(i) => weekdayName(WEEK[i], 'long')}
             initial={busiest}
             labelAt={busiest}
@@ -241,6 +248,7 @@ function Pace({ data, fmt }: { data: Insights; fmt: (c: number) => string }) {
         xLabel={(i) => String(i + 1)}
         xTick={(i) => i === 0 || (i + 1) % 5 === 0}
         format={fmt}
+        tick={cents}
         title={(i) => t('reports.dayN', { n: i + 1 })}
         initial={Math.max(0, today)}
         zero
