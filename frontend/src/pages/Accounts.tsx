@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
 import { api, type Account, type AccountKind } from '../lib/api'
+import { ask } from '../lib/confirm'
 import { centsToInput } from '../lib/format'
 import { useAccounts, useRefreshMoney } from '../lib/hooks'
 import { displayName, t, type Key } from '../lib/i18n'
@@ -178,8 +179,11 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
             <button
               type="button"
               className="btn btn-danger"
-              onClick={() =>
-                confirm(t('accounts.confirmDelete', { name: displayName(existing.name) })) && remove.mutate()
+              onClick={async () =>
+                (await ask({
+                  title: t('accounts.confirmDelete', { name: displayName(existing.name) }),
+                  confirm: t('common.delete'),
+                })) && remove.mutate()
               }
             >
               {t('common.delete')}

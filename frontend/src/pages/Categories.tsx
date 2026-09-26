@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import { PALETTE } from '../components/palette'
 import PageHeader from '../components/PageHeader'
 import { api, type Category, type Kind } from '../lib/api'
+import { ask } from '../lib/confirm'
 import { refreshKeys, useCategories, useRefreshMoney } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
 
@@ -123,8 +124,11 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
             <button
               type="button"
               className="btn btn-danger"
-              onClick={() =>
-                confirm(t('categories.confirmDelete', { name: displayName(existing.name) })) && remove.mutate()
+              onClick={async () =>
+                (await ask({
+                  title: t('categories.confirmDelete', { name: displayName(existing.name) }),
+                  confirm: t('common.delete'),
+                })) && remove.mutate()
               }
             >
               {t('common.delete')}

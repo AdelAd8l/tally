@@ -6,6 +6,7 @@ import NotificationSettings from '../components/NotificationSettings'
 import Icon from '../components/Icon'
 import PageHeader from '../components/PageHeader'
 import { api } from '../lib/api'
+import { ask } from '../lib/confirm'
 import { CURRENCIES, currencyLabel } from '../lib/format'
 import { useUser } from '../lib/hooks'
 import { setLang, t, useLang, type Lang } from '../lib/i18n'
@@ -180,7 +181,9 @@ export default function Settings() {
         <div className="panel panel-pad form-foot">
           <button
             className="btn btn-danger"
-            onClick={() => confirm(t('settings.confirmDelete')) && remove.mutate()}
+            onClick={async () =>
+              (await ask({ title: t('settings.confirmDelete'), confirm: t('settings.deleteBtn') })) && remove.mutate()
+            }
           >
             {t('settings.deleteBtn')}
           </button>

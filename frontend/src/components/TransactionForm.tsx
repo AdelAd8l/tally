@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 
 import { api, type Kind, type Transaction } from '../lib/api'
+import { ask } from '../lib/confirm'
 import { centsToInput, parseAmount, todayISO } from '../lib/format'
 import { UNCATEGORIZED, useAccounts, useCategories, useRefreshMoney, useUser } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
@@ -159,7 +160,7 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
             <button
               type="button"
               className="btn btn-danger"
-              onClick={() => confirm(t('tx.confirmDelete')) && remove.mutate()}
+              onClick={async () => (await ask({ title: t('tx.confirmDelete'), confirm: t('common.delete') })) && remove.mutate()}
               disabled={remove.isPending}
             >
               {t('common.delete')}
