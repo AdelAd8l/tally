@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import { Columns, LineChart, NumbersTable, type Stack } from '../components/charts'
+import { Columns, Donut, LineChart, NumbersTable, type Stack } from '../components/charts'
 import { compact } from '../lib/chart'
 import MonthPicker from '../components/MonthPicker'
 import PageHeader from '../components/PageHeader'
@@ -148,7 +148,25 @@ function ReportBody({ data }: { data: Insights }) {
           <div className="panel-head">
             <h2>{t('reports.byCategory')}</h2>
           </div>
-          {stacks.length ? (
+          {stacks.length && data.months.length === 1 ? (
+            <>
+              <Donut
+                slices={stacks}
+                values={stackValues[0]}
+                format={fmt}
+                centerLabel={monthName(data.months[0].month)}
+                ariaLabel={t('reports.byCategory')}
+              />
+              <NumbersTable
+                head={[t('common.category'), monthLabels[0], '%']}
+                rows={stacks.map((s, k) => [
+                  s.label,
+                  fmt(stackValues[0][k]),
+                  `${Math.round((stackValues[0][k] / Math.max(1, spent)) * 100)}%`,
+                ])}
+              />
+            </>
+          ) : stacks.length ? (
             <>
               <Columns
                 labels={monthLabels}

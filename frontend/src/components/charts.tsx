@@ -407,3 +407,96 @@ export function Columns(props: ColumnsProps) {
     </div>
   )
 }
+
+// ---- donut (part-to-whole for one period) ------------------------------------------------
+
+interface DonutProps {
+  slices: Stack[]
+  values: number[]
+  format: (v: number) => string
+  /** The text in the middle, under the total. */
+  centerLabel: string
+  ariaLabel: string
+}
+
+/** A ring split by share, starting at 12 o'clock. Beside it every slice is listed with its value
+ * and percentage, so close slices never have to be compared by eye. */
+export function Donut({ slices, values, format, centerLabel, ariaLabel }: DonutProps) {
+  const [active, setActive] = useState<number | null>(null)
+  const total = values.reduce((a, b) => a + b, 0)
+  const size = 200
+  const r = size / 2
+  const inner = r - 34
+  const pct = (v: number) => (total ? Math.round((v / total) * 100) : 0)
+  const shown = values.map((v, i) => ({ v, i })).filter((s) => s.v > 0)
+
+  // Each slice starts where the ones before it end (angles in radians from 12 o'clock).
+  const ends = shown.map((_, k) => shown.slice(0, k + 1).reduce((a, s) => a + s.v, 0) / total)
+  const arcs = shown.map(({ i }, k) => ({ i, a0: (k ? ends[k - 1] : 0) * Math.PI * 2, a1: ends[k] * Math.PI * 2 }))
+  const point = (a: number, rad: number) => [r + rad * Math.sin(a), r - rad * Math.cos(a)]
+  const arc = (a0: number, a1: number) => {
+    if (a1 - a0 >= Math.PI * 2 - 1e-6) a1 = a0 + Math.PI * 2 - 1e-4 // one slice: a whole ring
+    const big = a1 - a0 > Math.PI ? 1 : 0
+    const [x0, y0] = point(a0, r)
+    const [x1, y1] = point(a1, r)
+    const [x2, y2] = point(a1, inner)
+    const [x3, y3] = point(a0, inner)
+    return `M${x0},${y0}A${r},${r} 0 ${big} 1 ${x1},${y1}L${x2},${y2}A${inner},${inner} 0 ${big} 0 ${x3},${y3}Z`
+  }
+  const focus = active ?? null
+  const m = mirror(size) // only for its text direction; a ring needs no mirroring
+
+  return (
+    <div className="donut">
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        width={size}
+        height={size}
+        className="donut-svg"
+        role="img"
+        aria-label={ariaLabel}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+          e.preventDefault()
+          const at = shown.findIndex((s) => s.i === focus)
+          const next = (at + (e.key === 'ArrowRight' ? 1 : -1) + shown.length) % shown.length
+          setActive(shown[next < 0 ? 0 : next].i)
+        }}
+        onPointerLeave={(e) => e.pointerType === 'mouse' && setActive(null)}
+      >
+        {arcs.map(({ i, a0, a1 }) => (
+          <path
+            key={i}
+            d={arc(a0, a1)}
+            className={`donut-slice${focus === i ? ' is-active' : ''}${focus !== null && focus !== i ? ' is-dim' : ''}`}
+            style={{ fill: slices[i].color }}
+            onPointerEnter={() => setActive(i)}
+            onPointerDown={() => setActive(i)}
+          />
+        ))}
+        <text x={r} y={r - 4} textAnchor="middle" className="donut-total">
+          {m.text(focus === null ? format(total) : format(values[focus]))}
+        </text>
+        <text x={r} y={r + 16} textAnchor="middle" className="donut-caption">
+          {m.text(focus === null ? centerLabel : `${pct(values[focus])}% · ${slices[focus].label}`)}
+        </text>
+      </svg>
+      <ul className="donut-list">
+        {shown.map(({ v, i }) => (
+          <li
+            key={i}
+            className={focus === i ? 'is-active' : undefined}
+            onPointerEnter={() => setActive(i)}
+            onPointerLeave={(e) => e.pointerType === 'mouse' && setActive(null)}
+          >
+            <i className="chart-key" style={{ background: slices[i].color }} />
+            <span className="donut-name">{slices[i].label}</span>
+            <b className={numClass(format(v))}>{format(v)}</b>
+            <span className="faint num">{pct(v)}%</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

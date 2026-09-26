@@ -2083,3 +2083,95 @@ code {
   height: 100%;
   border-radius: 4px;
 }
+
+/* ---- donut: spending by category for a single month ------------------------------------ */
+
+.donut {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px 32px;
+  padding: 6px 20px 8px;
+}
+
+.donut-svg {
+  display: block;
+  outline: none;
+  touch-action: manipulation;
+}
+
+.donut-svg:focus-visible {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.donut-slice {
+  stroke: var(--panel);
+  stroke-width: 2; /* the gap between slices */
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.donut-slice.is-dim {
+  opacity: 0.35;
+}
+
+.donut-total {
+  fill: var(--ink);
+  font-family: var(--sans);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.donut-caption {
+  fill: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 12px;
+}
+
+.donut-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.donut-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 4ch;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.92rem;
+}
+
+.donut-list li.is-active {
+  background: var(--track);
+}
+
+.donut-list b {
+  font-weight: 500;
+}
+
+.donut-list .faint {
+  text-align: end;
+}
+
+.donut-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .donut {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .donut-list {
+    width: 100%;
+  }
+}
