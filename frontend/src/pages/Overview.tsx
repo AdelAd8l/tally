@@ -122,7 +122,10 @@ export default function Overview() {
                   return (
                     <li key={b.id}>
                       <div className="budget-mini-line">
-                        <span>{cat && displayName(cat.name)}</span>
+                        <span className="cat-name">
+                          {cat && <span className="swatch" style={{ background: cat.color }} />}
+                          {cat && displayName(cat.name)}
+                        </span>
                         <span className="num faint">
                           <Money cents={b.spent} whole className={pct > 1 ? 'danger-text' : ''} /> /{' '}
                           <Money cents={b.amount} whole />

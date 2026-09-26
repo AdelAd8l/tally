@@ -6,6 +6,7 @@ import { centsToInput, parseAmount, todayISO } from '../lib/format'
 import { useAccounts, useCategories, useRefreshMoney, useUser } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
 import Modal from './Modal'
+import SwatchSelect from './SwatchSelect'
 
 interface Props {
   open: boolean
@@ -106,14 +107,18 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
         <div className="grid-2">
           <label className="field">
             <span>{t('common.category')}</span>
-            <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <SwatchSelect
+              color={categories.find((c) => String(c.id) === categoryId)?.color}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+            >
               <option value="">{t('common.uncategorized')}</option>
               {choices.map((c) => (
                 <option key={c.id} value={c.id}>
                   {displayName(c.name)}
                 </option>
               ))}
-            </select>
+            </SwatchSelect>
           </label>
           <label className="field">
             <span>{t('common.date')}</span>
@@ -123,8 +128,8 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
 
         <label className="field">
           <span>{t('common.account')}</span>
-          <select
-            className="select"
+          <SwatchSelect
+            color={accounts.find((a) => String(a.id) === (accountId || String(accounts[0]?.id ?? '')))?.color}
             value={accountId || String(accounts[0]?.id ?? '')}
             onChange={(e) => setAccountId(e.target.value)}
           >
@@ -133,7 +138,7 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
                 {displayName(a.name)}
               </option>
             ))}
-          </select>
+          </SwatchSelect>
         </label>
 
         <label className="field">

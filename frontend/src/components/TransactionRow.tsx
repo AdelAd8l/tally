@@ -18,7 +18,7 @@ export default function TransactionRow({ tx, showDate = false }: { tx: Transacti
           <span className="swatch" style={{ background: category.color }} />
           {displayName(category.name)}
         </span>
-        <span className="tx-note">{tx.note || <span className="faint">—</span>}</span>
+        <span className="tx-note">{tx.note || <span className="faint tx-no-note">—</span>}</span>
         <span className="tx-meta faint">
           {showDate ? `${shortDate(tx.occurred_on)} · ` : ''}
           {accounts.length > 1 && account && (

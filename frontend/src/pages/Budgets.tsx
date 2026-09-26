@@ -5,6 +5,7 @@ import Modal from '../components/Modal'
 import MonthPicker from '../components/MonthPicker'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
+import SwatchSelect from '../components/SwatchSelect'
 import { api, type Budget } from '../lib/api'
 import type { Key } from '../lib/i18n'
 import { centsToInput, currentMonth, monthBounds, monthName, parseAmount, todayISO } from '../lib/format'
@@ -211,13 +212,17 @@ function BudgetDialog({ editing, options, onClose }: DialogProps) {
         {!existing && (
           <label className="field">
             <span>{t('common.category')}</span>
-            <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <SwatchSelect
+              color={byId.get(Number(categoryId || options[0]?.id))?.color}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+            >
               {options.map((c) => (
                 <option key={c.id} value={c.id}>
                   {displayName(c.name)}
                 </option>
               ))}
-            </select>
+            </SwatchSelect>
           </label>
         )}
         <label className="field">

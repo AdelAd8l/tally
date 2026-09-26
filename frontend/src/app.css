@@ -238,7 +238,8 @@ button.link-quiet {
 
 .grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Equal halves; a long option or a date field shrinks to fit instead of pushing the other. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1209,12 +1210,19 @@ code {
     font-size: 0.84rem;
   }
 
+  /* Phones: the date and account go on a third line, under the note. */
   .tx-meta {
+    grid-row: 3;
+    font-size: 0.78rem;
+  }
+
+  .tx-meta:empty,
+  .tx-no-note {
     display: none;
   }
 
   .tx-amount {
-    grid-row: 1 / span 2;
+    grid-row: 1 / span 3;
     grid-column: 2;
   }
 
@@ -1746,4 +1754,43 @@ code {
   margin-inline-end: 5px;
   border-radius: 50%;
   vertical-align: 1px;
+}
+
+/* ---- a select showing the chosen course/account/category's color (SwatchSelect) ---------- */
+
+.swatch-select {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.swatch-select.is-auto {
+  display: inline-grid;
+}
+
+.swatch-select.has-swatch::before {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 12px;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 3px;
+  background: var(--c);
+  content: '';
+  pointer-events: none;
+}
+
+.swatch-select > .select {
+  min-width: 0; /* a select is otherwise as wide as its longest option */
+}
+
+.swatch-select.has-swatch .select {
+  padding-inline-start: 30px;
+}
+
+/* Date and time fields have a built-in minimum width that would push past a narrow column. */
+.field > .input,
+.field > .select {
+  min-width: 0;
 }

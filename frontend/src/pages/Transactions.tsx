@@ -6,10 +6,11 @@ import Modal from '../components/Modal'
 import MonthPicker from '../components/MonthPicker'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
+import SwatchSelect from '../components/SwatchSelect'
 import TransactionRow from '../components/TransactionRow'
 import { api, type Transaction } from '../lib/api'
 import { dayHeading, monthBounds, monthName } from '../lib/format'
-import { useAccounts, useCategories, useComposer, useMonth, useRefreshMoney } from '../lib/hooks'
+import { UNCATEGORIZED, useAccounts, useCategories, useComposer, useMonth, useRefreshMoney } from '../lib/hooks'
 import { displayName, t } from '../lib/i18n'
 
 const PAGE = 100
@@ -75,7 +76,14 @@ export default function Transactions() {
             </button>
           ))}
         </div>
-        <select className="select select-auto" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        <SwatchSelect
+          className="select select-auto"
+          color={
+            categoryId === '0' ? UNCATEGORIZED.color : categories.find((c) => String(c.id) === categoryId)?.color
+          }
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+        >
           <option value="">{t('txs.allCategories')}</option>
           <option value="0">{t('common.uncategorized')}</option>
           {categories.map((c) => (
@@ -83,16 +91,21 @@ export default function Transactions() {
               {displayName(c.name)}
             </option>
           ))}
-        </select>
+        </SwatchSelect>
         {accounts.length > 1 && (
-          <select className="select select-auto" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+          <SwatchSelect
+            className="select select-auto"
+            color={accounts.find((a) => String(a.id) === accountId)?.color}
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+          >
             <option value="">{t('txs.allAccounts')}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {displayName(a.name)}
               </option>
             ))}
-          </select>
+          </SwatchSelect>
         )}
         <span className="spacer" />
         <button className="btn" onClick={() => setImporting(true)}>
@@ -230,13 +243,17 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
           <p className="muted">{t('import.help')}</p>
           <label className="field">
             <span>{t('import.into')}</span>
-            <select className="select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+            <SwatchSelect
+              color={accounts.find((a) => String(a.id) === (accountId || String(accounts[0]?.id ?? '')))?.color}
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+            >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {displayName(a.name)}
                 </option>
               ))}
-            </select>
+            </SwatchSelect>
           </label>
           <label className="dropzone">
             <input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
