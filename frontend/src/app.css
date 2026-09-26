@@ -767,9 +767,15 @@ code {
   font-weight: 500;
 }
 
+/* The gap before the type sits on the name, so a type moved to the next line isn't indented. */
+.ledger-row strong:has(+ .ledger-sub) {
+  margin-inline-end: 10px;
+}
+
 .ledger-sub {
-  margin-inline-start: 10px;
+  display: inline-block; /* "Credit card" moves under the name whole, never split in two */
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .ledger-total {
@@ -1731,4 +1737,13 @@ code {
 .color-hint {
   flex-basis: 100%;
   font-size: 0.82rem;
+}
+
+/* The account's color beside its name in a transaction row. */
+.swatch-dot {
+  width: 7px;
+  height: 7px;
+  margin-inline-end: 5px;
+  border-radius: 50%;
+  vertical-align: 1px;
 }

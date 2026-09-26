@@ -36,7 +36,7 @@ def list_accounts(user: User = Depends(current_user), db: Session = Depends(get_
 
 @router.post("", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
 def create_account(data: AccountIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    account = Account(user_id=user.id, **data.model_dump())
+    account = Account(user_id=user.id, **data.model_dump(exclude_none=True))
     db.add(account)
     db.commit()
     return to_out(account, 0)
@@ -47,7 +47,7 @@ def update_account(
     account_id: int, data: AccountIn, user: User = Depends(current_user), db: Session = Depends(get_db)
 ):
     account = get_owned(db, Account, account_id, user)
-    for field, value in data.model_dump().items():
+    for field, value in data.model_dump(exclude_none=True).items():
         setattr(account, field, value)
     db.commit()
     return to_out(account, balances(db, user).get(account.id, 0))

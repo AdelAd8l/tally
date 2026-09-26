@@ -6,12 +6,13 @@ import { normalizeHex, PALETTE } from './palette'
 const inPalette = (color: string) => PALETTE.some((c) => c.toLowerCase() === color.toLowerCase())
 
 interface Props {
+  label: string
   value: string
   onChange: (color: string) => void
 }
 
-/** A category color: one of the suggested colors, or any color from the wheel or a hex code. */
-export default function ColorField({ value, onChange }: Props) {
+/** A color for a category or account: one of the suggested colors, or any color from the wheel or a hex code. */
+export default function ColorField({ label, value, onChange }: Props) {
   const [mode, setMode] = useState<'preset' | 'custom'>(inPalette(value) ? 'preset' : 'custom')
   const [text, setText] = useState(value.toUpperCase())
   const valid = normalizeHex(text) !== null
@@ -23,13 +24,13 @@ export default function ColorField({ value, onChange }: Props) {
 
   return (
     <fieldset className="field palette">
-      <legend>{t('categories.color')}</legend>
-      <div className="segmented color-mode" role="group" aria-label={t('categories.color')}>
+      <legend>{label}</legend>
+      <div className="segmented color-mode" role="group" aria-label={label}>
         <button type="button" aria-pressed={mode === 'preset'} onClick={() => setMode('preset')}>
-          {t('categories.colorPreset')}
+          {t('color.preset')}
         </button>
         <button type="button" aria-pressed={mode === 'custom'} onClick={() => setMode('custom')}>
-          {t('categories.colorCustom')}
+          {t('color.custom')}
         </button>
       </div>
 
@@ -53,13 +54,13 @@ export default function ColorField({ value, onChange }: Props) {
             <input
               type="color"
               value={value.toLowerCase()}
-              aria-label={t('categories.colorWheel')}
+              aria-label={t('color.wheel')}
               onChange={(e) => pick(e.target.value.toUpperCase())}
             />
-            <span>{t('categories.colorWheel')}</span>
+            <span>{t('color.wheel')}</span>
           </label>
           <label className="color-hex">
-            <span className="visually-hidden">{t('categories.colorHex')}</span>
+            <span className="visually-hidden">{t('color.hex')}</span>
             <input
               className="input"
               dir="ltr"
@@ -78,7 +79,7 @@ export default function ColorField({ value, onChange }: Props) {
               onBlur={() => setText(normalizeHex(text) ?? value.toUpperCase())}
             />
           </label>
-          {!valid && <small className="danger-text color-hint">{t('categories.colorHexInvalid')}</small>}
+          {!valid && <small className="danger-text color-hint">{t('color.hexInvalid')}</small>}
         </div>
       )}
     </fieldset>

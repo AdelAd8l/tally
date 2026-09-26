@@ -1,4 +1,4 @@
-// Muted, print-like category colors that sit well on the paper background in both themes.
+// Muted, print-like category and account colors that sit well on the paper background in both themes.
 export const PALETTE = [
   '#5B8C5A', '#3F7D5C', '#4A9A9A', '#5A7FA8', '#4F6D8F', '#8A6FA0',
   '#A0525B', '#C0784A', '#B89B4A', '#6B7B4A', '#7A8B99', '#8A8F98',

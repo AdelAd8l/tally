@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 Kind = Literal["expense", "income"]
 Lang = Literal["en", "ar"]
-AccountKind = Literal["checking", "savings", "cash", "credit"]
+AccountKind = Literal["checking", "savings", "cash", "credit", "wallet"]
 HexColor = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
 
 
@@ -100,6 +100,7 @@ class AccountIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     kind: AccountKind = "checking"
     opening_balance: int = 0
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")  # None: keep it / pick by type
 
 
 class AccountOut(ORM):
@@ -107,6 +108,7 @@ class AccountOut(ORM):
     name: str
     kind: AccountKind
     opening_balance: int
+    color: str
     balance: int = 0
 
 

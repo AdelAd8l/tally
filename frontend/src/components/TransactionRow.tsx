@@ -21,7 +21,12 @@ export default function TransactionRow({ tx, showDate = false }: { tx: Transacti
         <span className="tx-note">{tx.note || <span className="faint">—</span>}</span>
         <span className="tx-meta faint">
           {showDate ? `${shortDate(tx.occurred_on)} · ` : ''}
-          {accounts.length > 1 && account ? displayName(account.name) : ''}
+          {accounts.length > 1 && account && (
+            <>
+              <span className="swatch swatch-dot" style={{ background: account.color }} />
+              {displayName(account.name)}
+            </>
+          )}
         </span>
         <Money
           cents={tx.kind === 'income' ? tx.amount : -tx.amount}

@@ -116,7 +116,7 @@ function CategoryDialog({ editing, defaultColor, onClose }: DialogProps) {
           />
         </label>
         {/* keyed so it starts over (suggested or custom) for each category opened */}
-        <ColorField key={key ?? ''} value={color} onChange={setColor} />
+        <ColorField key={key ?? ''} label={t('categories.color')} value={color} onChange={setColor} />
         {save.error && <p className="form-error">{save.error.message}</p>}
         <footer className="modal-actions">
           {existing && (

@@ -21,7 +21,17 @@ COLUMNS = [
     ("users", "is_admin", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ("users", "session_version", "INTEGER NOT NULL DEFAULT 0"),
+    ("accounts", "color", "VARCHAR(7) NOT NULL DEFAULT '#8A8F98'"),
 ]
+
+
+def _backfill(conn, table: str, column: str) -> None:
+    """Give rows that existed before a new column a sensible value."""
+    if (table, column) == ("accounts", "color"):
+        from .models import KIND_COLORS
+
+        for kind, color in KIND_COLORS.items():
+            conn.execute(text("UPDATE accounts SET color = :c WHERE kind = :k"), {"c": color, "k": kind})
 
 
 def upgrade(engine: Engine) -> list[str]:
@@ -35,5 +45,6 @@ def upgrade(engine: Engine) -> list[str]:
             existing = {c["name"] for c in inspector.get_columns(table)}
             if column not in existing:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
+                _backfill(conn, table, column)
                 added.append(f"{table}.{column}")
     return added

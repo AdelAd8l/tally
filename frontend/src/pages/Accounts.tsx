@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 
+import ColorField from '../components/ColorField'
 import Modal from '../components/Modal'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
@@ -14,6 +15,16 @@ const KINDS: Record<AccountKind, Key> = {
   savings: 'accounts.kind.savings',
   cash: 'accounts.kind.cash',
   credit: 'accounts.kind.credit',
+  wallet: 'accounts.kind.wallet',
+}
+
+// A new account's color until one is picked; the same as the server's (models.KIND_COLORS).
+const KIND_COLORS: Record<AccountKind, string> = {
+  checking: '#5A7FA8',
+  savings: '#3F7D5C',
+  cash: '#B89B4A',
+  credit: '#A0525B',
+  wallet: '#8A6FA0',
 }
 
 export default function Accounts() {
@@ -34,9 +45,12 @@ export default function Accounts() {
           {accounts.map((a) => (
             <li key={a.id}>
               <button className="ledger-row" onClick={() => setEditing(a)}>
-                <span>
-                  <strong>{displayName(a.name)}</strong>
-                  <span className="faint ledger-sub">{t(KINDS[a.kind])}</span>
+                <span className="cat-name">
+                  <span className="swatch" style={{ background: a.color }} />
+                  <span>
+                    <strong>{displayName(a.name)}</strong>
+                    <span className="faint ledger-sub">{t(KINDS[a.kind])}</span>
+                  </span>
                 </span>
                 <Money cents={a.balance} className={a.balance < 0 ? 'danger-text' : ''} />
               </button>
@@ -61,6 +75,8 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
   const [name, setName] = useState('')
   const [kind, setKind] = useState<AccountKind>('checking')
   const [opening, setOpening] = useState('')
+  const [color, setColor] = useState(KIND_COLORS.checking)
+  const [picked, setPicked] = useState(false) // until a color is picked, a new account's follows its type
   const [lastKey, setLastKey] = useState<string | null>(null)
 
   const key = editing === null ? null : existing ? `a${existing.id}` : 'new'
@@ -69,13 +85,15 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
     setName(existing?.name ?? '')
     setKind(existing?.kind ?? 'checking')
     setOpening(existing ? centsToInput(existing.opening_balance) : '')
+    setColor(existing?.color ?? KIND_COLORS.checking)
+    setPicked(!!existing)
   }
 
   const save = useMutation({
     mutationFn: () => {
       const value = opening.trim() === '' ? 0 : Math.round(Number(opening.replace(/,/g, '')) * 100)
       if (Number.isNaN(value)) throw new Error(t('accounts.openingError'))
-      return api.saveAccount({ name, kind, opening_balance: value }, existing?.id)
+      return api.saveAccount({ name, kind, opening_balance: value, color }, existing?.id)
     },
     onSuccess: async () => {
       await refresh()
@@ -116,7 +134,15 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
         <div className="grid-2">
           <label className="field">
             <span>{t('common.type')}</span>
-            <select className="select" value={kind} onChange={(e) => setKind(e.target.value as AccountKind)}>
+            <select
+              className="select"
+              value={kind}
+              onChange={(e) => {
+                const next = e.target.value as AccountKind
+                setKind(next)
+                if (!picked) setColor(KIND_COLORS[next])
+              }}
+            >
               {Object.entries(KINDS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {t(label)}
@@ -136,6 +162,16 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
             />
           </label>
         </div>
+        {/* keyed so it starts over (suggested or custom) for each account opened */}
+        <ColorField
+          key={key ?? ''}
+          label={t('accounts.color')}
+          value={color}
+          onChange={(c) => {
+            setColor(c)
+            setPicked(true)
+          }}
+        />
         {error && <p className="form-error">{error.message}</p>}
         <footer className="modal-actions">
           {existing && (

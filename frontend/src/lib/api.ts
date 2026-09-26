@@ -4,7 +4,7 @@ import { send, withQuery, type Query } from './http'
 import { pendingCount, syncNow, write } from './offline'
 
 export type Kind = 'expense' | 'income'
-export type AccountKind = 'checking' | 'savings' | 'cash' | 'credit'
+export type AccountKind = 'checking' | 'savings' | 'cash' | 'credit' | 'wallet'
 
 export interface User {
   id: number
@@ -40,7 +40,14 @@ export interface AdminUser {
 export type AdminUserUpdate = Partial<Pick<AdminUser, 'name' | 'email' | 'currency' | 'is_admin'>> & {
   new_password?: string
 }
-export interface Account { id: number; name: string; kind: AccountKind; opening_balance: number; balance: number }
+export interface Account {
+  id: number
+  name: string
+  kind: AccountKind
+  opening_balance: number
+  color: string
+  balance: number
+}
 export interface Category { id: number; name: string; kind: Kind; color: string }
 export interface Transaction {
   id: number

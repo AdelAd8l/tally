@@ -58,6 +58,21 @@ class User(Base):
         return bool(self.password_hash)
 
 
+# The color an account gets when none is chosen, by type (also used for accounts made before
+# accounts had colors, see migrate.py).
+KIND_COLORS = {
+    "checking": "#5A7FA8",
+    "savings": "#3F7D5C",
+    "cash": "#B89B4A",
+    "credit": "#A0525B",
+    "wallet": "#8A6FA0",
+}
+
+
+def _kind_color(context) -> str:
+    return KIND_COLORS.get(context.get_current_parameters().get("kind"), "#8A8F98")
+
+
 class Account(Base):
     __tablename__ = "accounts"
 
@@ -66,6 +81,7 @@ class Account(Base):
     name: Mapped[str] = mapped_column(String(60))
     kind: Mapped[str] = mapped_column(String(20), default="checking")
     opening_balance: Mapped[int] = mapped_column(Integer, default=0)
+    color: Mapped[str] = mapped_column(String(7), default=_kind_color)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_now)
 
     user: Mapped[User] = relationship(back_populates="accounts")
