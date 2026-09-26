@@ -10,7 +10,9 @@ import { currentMonth, money, monthName, shiftMonth } from '../lib/format'
 import { UNCATEGORIZED, useAccounts, useCategories, useMonth, useUser } from '../lib/hooks'
 import { displayName, locale, t } from '../lib/i18n'
 
-const RANGES = [3, 6, 12] as const
+const RANGES = [1, 3, 6, 12] as const
+// Arabic counts months differently for 1, 3–10 and 11+, so each choice has its own text.
+const RANGE_LABEL = { 1: 'reports.range1', 3: 'reports.range3', 6: 'reports.range6', 12: 'reports.range12' } as const
 const TOP_CATEGORIES = 6 // the rest are folded into "Other"
 const OTHER_COLOR = '#8d8b82'
 // The week as it is lived here: Saturday first. Server weekdays are Monday = 0.
@@ -37,7 +39,7 @@ export default function Reports() {
         <div className="segmented" role="group" aria-label={t('reports.range')}>
           {RANGES.map((n) => (
             <button key={n} aria-pressed={range === n} onClick={() => setRange(n)}>
-              {t('reports.months', { n })}
+              {t(RANGE_LABEL[n])}
             </button>
           ))}
         </div>
@@ -83,6 +85,13 @@ function ReportBody({ data }: { data: Insights }) {
   const top = ranked[0]
 
   const last = data.months.length - 1
+  // Net worth at the end of each month, starting from the end of the month before the period,
+  // so even a single month shows a change (start → now).
+  const first = data.months[0]
+  const worth = [
+    { month: shiftMonth(first.month, -1), value: first.net_worth - first.income + first.expense },
+    ...data.months.map((m) => ({ month: m.month, value: m.net_worth })),
+  ]
   const monthLabels = data.months.map((m) => monthName(m.month, 'short'))
   const accountRows = data.accounts
     .map((a) => ({ ...a, account: accounts.find((x) => x.id === a.account_id) }))
@@ -120,19 +129,18 @@ function ReportBody({ data }: { data: Insights }) {
           </div>
           <p className="chart-note faint">{t('reports.netWorthHint')}</p>
           <LineChart
-            series={[{ label: t('reports.netWorth'), color: 'var(--accent)', values: data.months.map((m) => m.net_worth) }]}
-            xLabel={(i) => monthLabels[i]}
-            xTick={() => true}
+            series={[{ label: t('reports.netWorth'), color: 'var(--accent)', values: worth.map((w) => w.value) }]}
+            xLabel={(i) => monthName(worth[i].month, 'short')}
             format={fmt}
             tick={cents}
-            title={(i) => monthName(data.months[i].month)}
-            initial={last}
+            title={(i) => monthName(worth[i].month)}
+            initial={worth.length - 1}
             markers
             ariaLabel={t('reports.netWorth')}
           />
           <NumbersTable
             head={[t('reports.month'), t('reports.netWorth')]}
-            rows={data.months.map((m) => [monthName(m.month), fmt(m.net_worth)])}
+            rows={worth.map((w) => [monthName(w.month), fmt(w.value)])}
           />
         </section>
 
