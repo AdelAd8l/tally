@@ -242,6 +242,9 @@ def send_to_user(
                 vapid_private_key=vapid,
                 vapid_claims={"sub": subject},
                 ttl=ttl,
+                # High urgency: without it Android holds pushes back while the phone is idle
+                # (Doze), and a reminder that arrives after its TTL is dropped.
+                headers={"Urgency": "high"},
                 timeout=10,
             )
             sent += 1

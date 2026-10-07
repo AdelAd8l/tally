@@ -20,7 +20,11 @@ SUB = {"endpoint": "https://push.example.com/abc", "keys": {"p256dh": "BPk3", "a
 @pytest.fixture
 def pushed(monkeypatch):
     sent = []
-    monkeypatch.setattr(notify, "webpush", lambda info, data, **kw: sent.append(json.loads(data)))
+    def fake(info, data, **kw):
+        assert kw["headers"] == {"Urgency": "high"}  # so a sleeping phone still gets it on time
+        sent.append(json.loads(data))
+
+    monkeypatch.setattr(notify, "webpush", fake)
     return sent
 
 
