@@ -14,7 +14,7 @@ from app.models import PushSubscription
 from .conftest import add_tx
 
 CAIRO = ZoneInfo("Africa/Cairo")
-SUB = {"endpoint": "https://push.example.com/abc", "keys": {"p256dh": "BPk3", "auth": "a1"}}
+SUB = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc", "keys": {"p256dh": "BPk3", "auth": "a1"}}
 
 
 @pytest.fixture

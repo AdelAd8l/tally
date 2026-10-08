@@ -99,3 +99,27 @@ def test_import_reports_bad_line(client, ids):
     )
     assert r.status_code == 422 and "Line 3" in r.json()["detail"]
     assert client.get("/api/transactions").json()["total"] == 0
+
+
+def test_export_keeps_formula_like_notes_as_text(client, ids):
+    add_tx(client, ids, "Groceries", 100, note='=HYPERLINK("http://evil.example","x")')
+    csv_text = client.get("/api/transactions/export").text
+    assert "'=HYPERLINK" in csv_text
+
+
+def test_import_survives_odd_files(client, ids):
+    def send(body: bytes):
+        return client.post(
+            "/api/transactions/import",
+            data={"account_id": ids["account"]},
+            files={"file": ("x.csv", io.BytesIO(body), "text/csv")},
+        )
+
+    # a row with more cells than the header
+    assert send(b"date,amount\n2026-01-01,5,extra,cells\n").json()["imported"] == 1
+    # a row with fewer cells than the header
+    r = send(b"amount,date\n5\n")
+    assert r.status_code == 422 and "Line 2" in r.json()["detail"]
+    for amount in (b"Infinity", b"NaN", b"1e30"):
+        r = send(b"date,amount\n2026-01-01," + amount + b"\n")
+        assert r.status_code == 422 and "Line 2" in r.json()["detail"], amount

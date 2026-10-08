@@ -1,5 +1,7 @@
 """Admin: list, edit and delete any account. Only for users with is_admin."""
 
+import logging
+import secrets
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,6 +16,8 @@ from ..defaults import create_starter_data
 from ..models import Account, Budget, Transaction, User, delete_user
 from ..security import current_admin, hash_password
 from ..site_settings import set_signup_open, signup_open
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -142,10 +146,16 @@ def ensure_admin() -> None:
     with SessionLocal() as db:
         user = db.scalar(select(User).where(User.email == email))
         if user is None:
+            password = settings.admin_password
+            if not password:
+                # No starting password set: make a random one and print it to the server's log
+                # (journalctl -u apps@<app>), rather than one anyone could guess.
+                password = secrets.token_urlsafe(12)
+                log.warning("Admin account %s created. Starting password: %s", email, password)
             user = User(
                 email=email,
                 name="Admin",
-                password_hash=hash_password(settings.admin_password),
+                password_hash=hash_password(password),
                 is_admin=True,
                 must_change_password=True,
             )

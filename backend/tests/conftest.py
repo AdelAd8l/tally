@@ -4,11 +4,13 @@ import os
 os.environ["TALLY_DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL", "sqlite://")
 os.environ["TALLY_STATIC_DIR"] = "/nonexistent"
 os.environ["TALLY_NOTIFICATIONS"] = "false"
+os.environ["TALLY_ADMIN_PASSWORD"] = "admin"
 os.environ["TALLY_SECRET_KEY"] = "test-secret-key-that-is-long-enough-for-hs256"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app import security  # noqa: E402
 from app.database import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -17,6 +19,7 @@ from app.main import app  # noqa: E402
 def client():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    security._fails.clear()  # sign-in throttling starts fresh
     with TestClient(app) as c:
         yield c
 

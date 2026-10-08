@@ -130,7 +130,17 @@ def parse_amount(raw: str) -> int:
         value = Decimal(cleaned)
     except InvalidOperation:
         raise ValueError(f"'{raw}' is not a number") from None
+    if not value.is_finite() or abs(value) > MAX_AMOUNT:
+        raise ValueError(f"'{raw}' is not a usable amount")
     return int((value * 100).to_integral_value())
+
+
+MAX_AMOUNT = 10**9  # the same limit as a transaction typed in by hand (10**11 cents)
+
+
+def cell(text: str) -> str:
+    """A spreadsheet runs a cell starting with = + - @ as a formula: keep text as text."""
+    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
 @router.get("/export")
@@ -155,9 +165,9 @@ def export_csv(
                 tx.occurred_on.isoformat(),
                 tx.kind,
                 cents_to_str(tx.amount),
-                accounts.get(tx.account_id, ""),
-                categories.get(tx.category_id, ""),
-                tx.note,
+                cell(accounts.get(tx.account_id, "")),
+                cell(categories.get(tx.category_id, "")),
+                cell(tx.note),
             ]
         )
     buffer.seek(0)
@@ -200,7 +210,9 @@ async def import_csv(
     created: list[str] = []
     imported = 0
     for line_no, row in enumerate(reader, start=2):
-        row = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
+        # Extra cells past the header come under the key None, as a list: ignored.
+        # Missing cells at the end come as None: empty.
+        row = {k.strip().lower(): (v or "").strip() for k, v in row.items() if k and not isinstance(v, list)}
         try:
             occurred_on = date.fromisoformat(row["date"])
             amount = parse_amount(row["amount"])

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -7,9 +7,11 @@ from ..defaults import create_starter_data
 from ..models import User, delete_user
 from ..schemas import LoginIn, PasswordChange, RegisterIn, UserOut, UserUpdate
 from ..security import (
+    check_attempts,
     clear_session_cookie,
     current_user,
     hash_password,
+    record_failure,
     set_session_cookie,
     verify_password,
 )
@@ -40,11 +42,14 @@ def register(data: RegisterIn, response: Response, db: Session = Depends(get_db)
 
 
 @router.post("/login", response_model=UserOut)
-def login(data: LoginIn, response: Response, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.email == data.email.lower()))
+def login(data: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    email = data.email.lower()
+    check_attempts(request, email)
+    user = db.scalar(select(User).where(User.email == email))
     if user is not None and not user.password_hash:
         raise HTTPException(401, "This account signs in with Google. Use Continue with Google.")
     if user is None or not verify_password(data.password, user.password_hash):
+        record_failure(request, email)
         raise HTTPException(401, "Email or password is incorrect")
     set_session_cookie(response, user)
     return user
@@ -70,11 +75,18 @@ def update_me(data: UserUpdate, user: User = Depends(current_user), db: Session 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(
-    data: PasswordChange, response: Response, user: User = Depends(current_user), db: Session = Depends(get_db)
+    data: PasswordChange,
+    request: Request,
+    response: Response,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
 ):
     # An account made with Google has no password yet: it can set one without the old one.
-    if user.password_hash and not verify_password(data.current_password, user.password_hash):
-        raise HTTPException(400, "Current password is incorrect")
+    if user.password_hash:
+        check_attempts(request, user.email)
+        if not verify_password(data.current_password, user.password_hash):
+            record_failure(request, user.email)
+            raise HTTPException(400, "Current password is incorrect")
     if data.new_password == data.current_password:
         raise HTTPException(422, "Choose a password different from the current one")
     user.password_hash = hash_password(data.new_password)

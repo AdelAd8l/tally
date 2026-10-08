@@ -49,7 +49,7 @@ def make_person(client, email="sara@example.com"):
     add_tx(client, ids, amount=5000)
     add_tx(client, ids, category="Salary", kind="income", amount=900000)
     client.put("/api/budgets", json={"category_id": cats["Groceries"], "amount": 100000})
-    sub = {"endpoint": f"https://push.example.com/{email}", "keys": {"p256dh": "k", "auth": "a"}}
+    sub = {"endpoint": f"https://fcm.googleapis.com/fcm/send/{email}", "keys": {"p256dh": "k", "auth": "a"}}
     client.post("/api/push/subscribe", json=sub)
     uid = client.get("/api/auth/me").json()["id"]
     client.post("/api/auth/logout")

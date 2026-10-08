@@ -118,3 +118,16 @@ def test_tally_accounts_get_currency_and_starter_data(client, google):
     assert client.get("/api/auth/me").json()["currency"] == "EGP"
     assert len(client.get("/api/accounts").json()) == 1
     assert len(client.get("/api/categories").json()) > 5
+
+
+def test_someone_who_signed_up_first_with_your_email_loses_their_way_in(client, google):
+    # Someone signs up with Nour's email (sign-up doesn't check emails) and stays signed in.
+    attacker = client.__class__(client.app)
+    signup(attacker, email="nour@gmail.com", password="attacker-knows-this")
+    # Nour then uses Continue with Google: Google proves the email is theirs.
+    sign_in_with_google(client)
+    assert client.get("/api/auth/me").json()["has_password"] is False
+    # The password chosen by the other person no longer works, and their session is over.
+    assert attacker.get("/api/auth/me").status_code == 401
+    login = {"email": "nour@gmail.com", "password": "attacker-knows-this"}
+    assert attacker.post("/api/auth/login", json=login).status_code == 401
