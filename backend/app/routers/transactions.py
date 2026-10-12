@@ -9,6 +9,7 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..limits import MAX_CATEGORIES, MAX_TRANSACTIONS, ensure_room, room_left
 from ..models import Account, Category, Transaction, User
 from ..schemas import ImportResult, TransactionIn, TransactionOut, TransactionPage
 from ..security import current_user
@@ -17,6 +18,7 @@ from .deps import get_owned
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
 MAX_IMPORT_BYTES = 2 * 1024 * 1024
+MAX_IMPORT_ROWS = 20_000
 
 
 def validate_refs(db: Session, user: User, data: TransactionIn) -> None:
@@ -89,6 +91,7 @@ def list_transactions(
 @router.post("", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)
 def create_transaction(data: TransactionIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     validate_refs(db, user, data)
+    ensure_room(db, Transaction, user.id, MAX_TRANSACTIONS, "transactions")
     tx = Transaction(user_id=user.id, **data.model_dump())
     tx.note = tx.note.strip()
     db.add(tx)
@@ -179,7 +182,7 @@ def export_csv(
 
 
 @router.post("/import", response_model=ImportResult)
-async def import_csv(
+def import_csv(
     account_id: int = Form(...),
     file: UploadFile = File(...),
     user: User = Depends(current_user),
@@ -191,7 +194,7 @@ async def import_csv(
     Unknown categories are created on the fly.
     """
     get_owned(db, Account, account_id, user)
-    raw = await file.read(MAX_IMPORT_BYTES + 1)
+    raw = file.file.read(MAX_IMPORT_BYTES + 1)  # a plain `def` route: the work runs in a thread, not on the event loop
     if len(raw) > MAX_IMPORT_BYTES:
         raise HTTPException(413, "File is larger than 2 MB")
     try:
@@ -208,8 +211,20 @@ async def import_csv(
         (c.name.lower(), c.kind): c for c in db.scalars(select(Category).where(Category.user_id == user.id))
     }
     created: list[str] = []
+    room = room_left(db, Transaction, user.id, MAX_TRANSACTIONS)
+    try:
+        return _import_rows(db, user, account_id, reader, categories, created, room)
+    except csv.Error as exc:
+        db.rollback()
+        raise HTTPException(422, f"The file is not a valid CSV ({exc})") from None
+
+
+def _import_rows(db, user, account_id, reader, categories, created, room) -> ImportResult:
     imported = 0
     for line_no, row in enumerate(reader, start=2):
+        if line_no - 1 > MAX_IMPORT_ROWS:
+            db.rollback()
+            raise HTTPException(413, f"The file has more than {MAX_IMPORT_ROWS:,} rows")
         # Extra cells past the header come under the key None, as a list: ignored.
         # Missing cells at the end come as None: empty.
         row = {k.strip().lower(): (v or "").strip() for k, v in row.items() if k and not isinstance(v, list)}
@@ -225,12 +240,18 @@ async def import_csv(
         if kind not in ("expense", "income"):
             kind = "expense" if amount < 0 else "income"
 
+        if imported >= room:
+            db.rollback()
+            raise HTTPException(409, f"Limit reached: at most {MAX_TRANSACTIONS:,} transactions per account")
         category = None
-        name = row.get("category", "")
+        name = row.get("category", "")[:40]  # the stored name is cut to 40 letters: look it up the same way
         if name:
             category = categories.get((name.lower(), kind))
             if category is None:
-                category = Category(user_id=user.id, name=name[:40], kind=kind)
+                if len(categories) >= MAX_CATEGORIES:
+                    db.rollback()
+                    raise HTTPException(409, f"Limit reached: at most {MAX_CATEGORIES:,} categories per account")
+                category = Category(user_id=user.id, name=name, kind=kind)
                 db.add(category)
                 db.flush()
                 categories[(name.lower(), kind)] = category

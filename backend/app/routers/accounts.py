@@ -3,6 +3,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..limits import MAX_ACCOUNTS, ensure_room
 from ..models import Account, Transaction, User
 from ..schemas import AccountIn, AccountOut
 from ..security import current_user
@@ -36,6 +37,7 @@ def list_accounts(user: User = Depends(current_user), db: Session = Depends(get_
 
 @router.post("", response_model=AccountOut, status_code=status.HTTP_201_CREATED)
 def create_account(data: AccountIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    ensure_room(db, Account, user.id, MAX_ACCOUNTS, "accounts")
     account = Account(user_id=user.id, **data.model_dump(exclude_none=True))
     db.add(account)
     db.commit()

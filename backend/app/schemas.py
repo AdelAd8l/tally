@@ -99,7 +99,7 @@ class PasswordChange(BaseModel):
 class AccountIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     kind: AccountKind = "checking"
-    opening_balance: int = 0
+    opening_balance: int = Field(default=0, ge=-(10**11), le=10**11)  # cents, the same limit as a transaction
     color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")  # None: keep it / pick by type
 
 
@@ -249,3 +249,10 @@ class Insights(BaseModel):
     accounts: list[InsightAccount]
     weekdays: list[int]  # average spent per day, Monday = 0
     pace: Pace
+
+
+class DeleteAccountIn(BaseModel):
+    """Deleting an account asks again: the password, or (for a Google-only account) the email typed out."""
+
+    password: str = Field(default="", max_length=200)
+    confirm_email: str = Field(default="", max_length=254)

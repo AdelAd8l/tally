@@ -71,7 +71,7 @@ def test_delete_account_removes_everything(client, ids):
         json={"account_id": ids["account"], "kind": "expense", "amount": 500, "occurred_on": "2026-01-01"},
     )
     client.put("/api/budgets", json={"category_id": ids["Dining"], "amount": 100})
-    assert client.delete("/api/auth/me").status_code == 204
+    assert client.request("DELETE", "/api/auth/me", json={"password": "correct-horse"}).status_code == 204
     assert client.get("/api/auth/me").status_code == 401
     # The email is free again.
     signup(client)

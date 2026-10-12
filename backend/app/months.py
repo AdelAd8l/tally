@@ -12,6 +12,8 @@ def parse_month(value: str) -> date:
     match = _MONTH.match(value)
     if not match:
         raise HTTPException(422, "month must look like YYYY-MM")
+    if not 1900 <= int(match[1]) <= 9998:  # year 0 and year 9999 would overflow date arithmetic further on
+        raise HTTPException(422, "month must be between 1900-01 and 9998-12")
     return date(int(match[1]), int(match[2]), 1)
 
 

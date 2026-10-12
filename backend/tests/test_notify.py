@@ -20,6 +20,7 @@ SUB = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc", "keys": {"p256dh":
 @pytest.fixture
 def pushed(monkeypatch):
     sent = []
+
     def fake(info, data, **kw):
         assert kw["headers"] == {"Urgency": "high"}  # so a sleeping phone still gets it on time
         sent.append(json.loads(data))
@@ -159,6 +160,10 @@ def test_test_notification_and_unsubscribe(client, user, pushed):
     client.post("/api/push/subscribe", json=SUB)
     assert client.post("/api/push/test").json() == {"sent": 1}
     assert pushed[0]["title"] == "Tally"
+    assert client.post("/api/push/test").status_code == 429  # a second test right away has to wait
+    from app.routers import push
+
+    push._last_test.clear()
     client.post("/api/push/unsubscribe", json={"endpoint": SUB["endpoint"]})
     assert client.post("/api/push/test").status_code == 409
 
@@ -172,7 +177,7 @@ def test_settings_validation(client, user):
 
 def test_deleting_the_account_removes_devices(client, user):
     client.post("/api/push/subscribe", json=SUB)
-    assert client.delete("/api/auth/me").status_code == 204
+    assert client.request("DELETE", "/api/auth/me", json={"password": "correct-horse"}).status_code == 204
     with SessionLocal() as db:
         assert db.query(PushSubscription).count() == 0
 

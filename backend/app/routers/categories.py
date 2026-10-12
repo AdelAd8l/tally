@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..limits import MAX_CATEGORIES, ensure_room
 from ..models import Category, Transaction, User
 from ..schemas import CategoryIn, CategoryOut
 from ..security import current_user
@@ -23,6 +24,7 @@ def list_categories(user: User = Depends(current_user), db: Session = Depends(ge
 
 @router.post("", response_model=CategoryOut, status_code=status.HTTP_201_CREATED)
 def create_category(data: CategoryIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    ensure_room(db, Category, user.id, MAX_CATEGORIES, "categories")
     category = Category(user_id=user.id, **data.model_dump())
     db.add(category)
     try:
