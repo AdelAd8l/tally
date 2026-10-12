@@ -8,6 +8,7 @@ import { api, type AdminUser } from '../lib/api'
 import { CURRENCIES, currencyLabel } from '../lib/format'
 import { useUser } from '../lib/hooks'
 import { locale, t } from '../lib/i18n'
+import { Select } from '../components/pickers'
 
 const joined = (iso: string) =>
   new Date(iso).toLocaleDateString(locale(), { day: 'numeric', month: 'short', year: 'numeric' })
@@ -127,13 +128,13 @@ function EditUser({ user, self, onClose }: { user: AdminUser; self: boolean; onC
         </label>
         <label className="field">
           <span>{t('common.currency')}</span>
-          <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+          <Select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
             {[...new Set([...CURRENCIES, currency])].map((c) => (
               <option key={c} value={c}>
                 {currencyLabel(c)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="field">
           <span>{t('admin.newPassword')}</span>

@@ -5,6 +5,7 @@ import { api, type User } from '../lib/api'
 import { t, type Key } from '../lib/i18n'
 import { browserTimeZone, disablePush, enablePush, pushState, type PushState } from '../lib/push'
 import TimeZoneField from './TimeZoneField'
+import { TimeField } from './pickers'
 
 type Prefs = Pick<User, 'notify_budgets' | 'daily_reminder' | 'daily_time' | 'monthly_summary' | 'timezone' | 'timezone_auto'>
 const pick = (u: User): Prefs => ({
@@ -105,12 +106,11 @@ export default function NotificationSettings({ user }: { user: User }) {
       <div className="notify-row">
         {option('daily_reminder', 'notify.daily', 'notify.dailyHint')}
         {prefs.daily_reminder && (
-          <input
+          <TimeField
             className="input notify-time"
-            type="time"
             aria-label={t('notify.daily')}
             value={prefs.daily_time}
-            onChange={(e) => e.target.value && change({ daily_time: e.target.value })}
+            onChange={(v) => v && change({ daily_time: v })}
           />
         )}
       </div>

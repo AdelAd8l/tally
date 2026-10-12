@@ -8,6 +8,7 @@ import { UNCATEGORIZED, useAccounts, useCategories, useRefreshMoney, useUser } f
 import { displayName, t } from '../lib/i18n'
 import Modal from './Modal'
 import SwatchSelect from './SwatchSelect'
+import { DateField } from './pickers'
 
 interface Props {
   open: boolean
@@ -123,7 +124,7 @@ export default function TransactionForm({ open, onClose, initialKind, editing }:
           </label>
           <label className="field">
             <span>{t('common.date')}</span>
-            <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            <DateField value={date} onChange={setDate} required />
           </label>
         </div>
 

@@ -12,6 +12,7 @@ import { useUser } from '../lib/hooks'
 import { setLang, t, useLang, type Lang } from '../lib/i18n'
 import { useSignOut } from '../lib/signout'
 import { wipeDevice } from '../lib/wipe'
+import { Select } from '../components/pickers'
 
 export default function Settings() {
   const user = useUser()
@@ -108,13 +109,13 @@ export default function Settings() {
           </label>
           <label className="field">
             <span>{t('common.currency')}</span>
-            <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <Select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {[...new Set([user.currency, ...CURRENCIES])].map((c) => (
                 <option key={c} value={c}>
                   {currencyLabel(c)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <div className="form-foot">
             {profile.isSuccess && <span className="faint">{t('settings.saved')}</span>}

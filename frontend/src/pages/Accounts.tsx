@@ -10,6 +10,7 @@ import { ask } from '../lib/confirm'
 import { centsToInput } from '../lib/format'
 import { useAccounts, useRefreshMoney } from '../lib/hooks'
 import { displayName, t, type Key } from '../lib/i18n'
+import { Select } from '../components/pickers'
 
 const KINDS: Record<AccountKind, Key> = {
   checking: 'accounts.kind.checking',
@@ -135,7 +136,7 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
         <div className="grid-2">
           <label className="field">
             <span>{t('common.type')}</span>
-            <select
+            <Select
               className="select"
               value={kind}
               onChange={(e) => {
@@ -149,7 +150,7 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
                   {t(label)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="field">
             <span>{t('accounts.opening')}</span>

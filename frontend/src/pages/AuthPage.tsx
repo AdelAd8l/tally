@@ -9,6 +9,7 @@ import { CURRENCIES, currencyLabel, guessCurrency } from '../lib/format'
 import { displayName, setLang, t, useLang, type Key } from '../lib/i18n'
 import { browserTimeZone } from '../lib/push'
 import { LanguageSwitch } from './Settings'
+import { Select } from '../components/pickers'
 
 const RECEIPT = [
   ['Rent', '1,450.00'],
@@ -122,13 +123,13 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             {signup && (
               <label className="field">
                 <span>{t('common.currency')}</span>
-                <select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                <Select className="select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
                   {CURRENCIES.map((c) => (
                     <option key={c} value={c}>
                       {currencyLabel(c)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             )}
             {submit.error && <p className="form-error">{submit.error.message}</p>}
