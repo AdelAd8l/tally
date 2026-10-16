@@ -91,7 +91,9 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   }
   // Account and notification calls need the server's answer, and a file upload can't be
   // stored for later: these never go to the outbox. Everything else can wait for a signal.
-  if (['/auth/', '/push/', '/admin/', '/transactions/bulk-', '/transactions/delete-all'].some((p) => path.startsWith(p)) || body instanceof FormData) {
+  if (['/auth/', '/push/', '/admin/', '/transactions/bulk-', '/transactions/delete-all', '/accounts/reset-all'].some((p) => path.startsWith(p)) ||
+    /^\/accounts\/\d+\/reset$/.test(path) ||
+    body instanceof FormData) {
     return send<T>(method, path, body, query)
   }
   return write<T>(method, path, body)
@@ -113,6 +115,8 @@ export const api = {
   saveAccount: (data: Omit<Account, 'id' | 'balance'>, id?: number) =>
     id ? request<Account>('PUT', `/accounts/${id}`, data) : request<Account>('POST', '/accounts', data),
   deleteAccount: (id: number) => request<void>('DELETE', `/accounts/${id}`),
+  resetAccount: (id: number) => request<Account>('POST', `/accounts/${id}/reset`, { confirm: true }),
+  resetAllAccounts: () => request<{ deleted: number }>('POST', '/accounts/reset-all', { confirm: true }),
 
   categories: () => request<Category[]>('GET', '/categories'),
   saveCategory: (data: Omit<Category, 'id'>, id?: number) =>

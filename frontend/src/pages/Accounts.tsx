@@ -1,10 +1,11 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import ColorField from '../components/ColorField'
 import Modal from '../components/Modal'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
+import TypedConfirm from '../components/TypedConfirm'
 import { api, type Account, type AccountKind } from '../lib/api'
 import { ask } from '../lib/confirm'
 import { centsToInput } from '../lib/format'
@@ -32,11 +33,15 @@ const KIND_COLORS: Record<AccountKind, string> = {
 export default function Accounts() {
   const { data: accounts = [] } = useAccounts()
   const [editing, setEditing] = useState<Account | 'new' | null>(null)
+  const [zeroing, setZeroing] = useState(false)
   const total = accounts.reduce((s, a) => s + a.balance, 0)
 
   return (
     <div className="page page-narrow">
       <PageHeader title={t('nav.accounts')}>
+        <button className="btn btn-danger" onClick={() => setZeroing(true)}>
+          {t('accounts.zeroAll')}
+        </button>
         <button className="btn btn-primary" onClick={() => setEditing('new')}>
           {t('accounts.add')}
         </button>
@@ -67,7 +72,41 @@ export default function Accounts() {
       <p className="faint hint">{t('accounts.hint')}</p>
 
       <AccountDialog editing={editing} onClose={() => setEditing(null)} />
+      <ZeroAllDialog open={zeroing} onClose={() => setZeroing(false)} />
     </div>
+  )
+}
+
+/** "Zero all accounts": start from the beginning, behind a typed confirmation. */
+function ZeroAllDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const refresh = useRefreshMoney()
+  const everything = useQuery({
+    queryKey: ['transactions', 'all-count'],
+    queryFn: () => api.transactions({ limit: 1 }),
+    enabled: open,
+    staleTime: 0,
+  })
+  const count = everything.data?.total
+
+  return (
+    <TypedConfirm
+      open={open}
+      onClose={onClose}
+      title={t('accounts.zeroAllTitle')}
+      body={t('accounts.zeroAllBody', { n: count ?? '…' })}
+      word={t('accounts.zeroWord')}
+      goLabel={t('accounts.zeroAllGo')}
+      ready={count !== undefined}
+      extra={
+        <a className="btn btn-sm" href={api.exportUrl({})} download>
+          {t('txs.deleteAllBackup')}
+        </a>
+      }
+      onConfirm={async () => {
+        await api.resetAllAccounts()
+        await refresh()
+      }}
+    />
   )
 }
 
@@ -109,7 +148,14 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
       onClose()
     },
   })
-  const error = save.error ?? remove.error
+  const zero = useMutation({
+    mutationFn: () => api.resetAccount(existing!.id),
+    onSuccess: async () => {
+      await refresh()
+      onClose()
+    },
+  })
+  const error = save.error ?? remove.error ?? zero.error
 
   return (
     <Modal
@@ -118,6 +164,7 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
       onClose={() => {
         save.reset()
         remove.reset()
+        zero.reset()
         onClose()
       }}
       width={420}
@@ -188,6 +235,21 @@ function AccountDialog({ editing, onClose }: { editing: Account | 'new' | null; 
               }
             >
               {t('common.delete')}
+            </button>
+          )}
+          {existing && (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={async () =>
+                (await ask({
+                  title: t('accounts.confirmZero', { name: displayName(existing.name) }),
+                  body: t('accounts.confirmZeroBody'),
+                  confirm: t('accounts.zero'),
+                })) && zero.mutate()
+              }
+            >
+              {t('accounts.zero')}
             </button>
           )}
           <span className="spacer" />

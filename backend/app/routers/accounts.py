@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import case, func, select
+from sqlalchemy import case, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..limits import MAX_ACCOUNTS, ensure_room
 from ..models import Account, Transaction, User
-from ..schemas import AccountIn, AccountOut
+from ..schemas import AccountIn, AccountOut, DeleteAll, Deleted
 from ..security import current_user
 from .deps import get_owned
 
@@ -53,6 +53,34 @@ def update_account(
         setattr(account, field, value)
     db.commit()
     return to_out(account, balances(db, user).get(account.id, 0))
+
+
+@router.post("/reset-all", response_model=Deleted)
+def reset_all_accounts(data: DeleteAll, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Start from the beginning: every balance back to 0. Deletes all transactions and clears every opening balance.
+
+    The accounts themselves, the categories and the budgets stay.
+    """
+    if not data.confirm:
+        raise HTTPException(422, "Confirmation is required")
+    result = db.execute(delete(Transaction).where(Transaction.user_id == user.id))
+    db.execute(update(Account).where(Account.user_id == user.id).values(opening_balance=0))
+    db.commit()
+    return Deleted(deleted=result.rowcount or 0)
+
+
+@router.post("/{account_id}/reset", response_model=AccountOut)
+def reset_account(
+    account_id: int, data: DeleteAll, user: User = Depends(current_user), db: Session = Depends(get_db)
+):
+    """Zero one account: its balance starts again from 0 (its transactions are deleted, its opening balance cleared)."""
+    if not data.confirm:
+        raise HTTPException(422, "Confirmation is required")
+    account = get_owned(db, Account, account_id, user)
+    db.execute(delete(Transaction).where(Transaction.user_id == user.id, Transaction.account_id == account.id))
+    account.opening_balance = 0
+    db.commit()
+    return to_out(account, 0)
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)

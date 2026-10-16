@@ -8,6 +8,7 @@ import MonthPicker from '../components/MonthPicker'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
 import SwatchSelect from '../components/SwatchSelect'
+import TypedConfirm from '../components/TypedConfirm'
 import TransactionRow from '../components/TransactionRow'
 import { api, type Transaction } from '../lib/api'
 import { ask } from '../lib/confirm'
@@ -319,9 +320,6 @@ export default function Transactions() {
 /** "Delete all": everything the person has, in every month and account, behind a typed confirmation. */
 function DeleteAllDialog({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
   const refresh = useRefreshMoney()
-  const [typed, setTyped] = useState('')
-  const word = t('txs.deleteAllWord')
-
   const everything = useQuery({
     queryKey: ['transactions', 'all-count'],
     queryFn: () => api.transactions({ limit: 1 }),
@@ -330,64 +328,27 @@ function DeleteAllDialog({ open, onClose, onDone }: { open: boolean; onClose: ()
   })
   const count = everything.data?.total
 
-  const wipe = useMutation({
-    mutationFn: () => api.deleteAllTransactions(),
-    onSuccess: () => {
-      refresh()
-      onDone()
-      close()
-    },
-  })
-
-  function close() {
-    setTyped('')
-    wipe.reset()
-    onClose()
-  }
-
-  const ready = typed.trim().toLowerCase() === word.toLowerCase()
-
   return (
-    <Modal title={t('txs.deleteAllTitle')} open={open} onClose={close} width={480}>
-      {count === 0 ? (
-        <div className="stack">
-          <p>{t('txs.deleteAllNone')}</p>
-          <footer className="modal-actions">
-            <span className="spacer" />
-            <button className="btn btn-primary" onClick={close}>
-              {t('common.close')}
-            </button>
-          </footer>
-        </div>
-      ) : (
-        <form
-          className="stack"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (ready && !wipe.isPending) wipe.mutate()
-          }}
-        >
-          <p>{t('txs.deleteAllBody', { n: count ?? '…' })}</p>
-          <a className="btn btn-sm" href={api.exportUrl({})} download>
-            <Icon name="download" size={16} /> {t('txs.deleteAllBackup')}
-          </a>
-          <label className="field">
-            <span>{t('txs.deleteAllType', { word })}</span>
-            <input className="input" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
-          </label>
-          {wipe.error && <p className="form-error">{wipe.error.message}</p>}
-          <footer className="modal-actions">
-            <span className="spacer" />
-            <button type="button" className="btn" onClick={close}>
-              {t('common.cancel')}
-            </button>
-            <button className="btn btn-danger-solid" disabled={!ready || wipe.isPending || count === undefined}>
-              {wipe.isPending ? t('txs.deleting') : t('txs.deleteAllGo')}
-            </button>
-          </footer>
-        </form>
-      )}
-    </Modal>
+    <TypedConfirm
+      open={open}
+      onClose={onClose}
+      title={t('txs.deleteAllTitle')}
+      body={t('txs.deleteAllBody', { n: count ?? '…' })}
+      word={t('txs.deleteAllWord')}
+      goLabel={t('txs.deleteAllGo')}
+      emptyText={count === 0 ? t('txs.deleteAllNone') : undefined}
+      ready={count !== undefined}
+      extra={
+        <a className="btn btn-sm" href={api.exportUrl({})} download>
+          <Icon name="download" size={16} /> {t('txs.deleteAllBackup')}
+        </a>
+      }
+      onConfirm={async () => {
+        await api.deleteAllTransactions()
+        refresh()
+        onDone()
+      }}
+    />
   )
 }
 
