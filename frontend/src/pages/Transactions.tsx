@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 
 import Check from '../components/Check'
 import Icon from '../components/Icon'
@@ -57,10 +57,12 @@ export default function Transactions() {
 
   // what is on screen changed (month, search, filter): the old ticks no longer describe it
   const filterKey = JSON.stringify(filters)
-  useEffect(() => {
+  const [pickedFor, setPickedFor] = useState(filterKey)
+  if (pickedFor !== filterKey) {
+    setPickedFor(filterKey)
     setPicked(new Set())
     setAllMatching(false)
-  }, [filterKey])
+  }
 
   const total = first?.total ?? 0
   const selectedCount = allMatching ? total : picked.size

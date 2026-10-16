@@ -136,7 +136,8 @@ def bulk_delete(data: BulkDelete, user: User = Depends(current_user), db: Sessio
             deleted += result.rowcount or 0
     else:
         f = data.matching
-        wanted = filtered(user, f.start, f.end, f.account_id, f.category_id, f.kind, f.q).with_only_columns(Transaction.id)
+        stmt = filtered(user, f.start, f.end, f.account_id, f.category_id, f.kind, f.q)
+        wanted = stmt.with_only_columns(Transaction.id)
         result = db.execute(delete(Transaction).where(Transaction.user_id == user.id, Transaction.id.in_(wanted)))
         deleted = result.rowcount or 0
     db.commit()

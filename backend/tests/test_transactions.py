@@ -140,7 +140,8 @@ def test_bulk_delete_by_ids_only_touches_my_transactions(client, ids):
     other = TestClient(client.app)
     signup(other, email="bob@example.com")
     other_account = other.get("/api/accounts").json()[0]["id"]
-    mine = other.post("/api/transactions", json={"account_id": other_account, "kind": "expense", "amount": 500, "occurred_on": "2026-03-10", "note": ""}).json()
+    body = {"account_id": other_account, "kind": "expense", "amount": 500, "occurred_on": "2026-03-10", "note": ""}
+    mine = other.post("/api/transactions", json=body).json()
     assert client.post("/api/transactions/bulk-delete", json={"ids": [mine["id"]]}).json() == {"deleted": 0}
     assert other.get("/api/transactions").json()["total"] == 1
 
@@ -149,7 +150,8 @@ def test_bulk_delete_matching_a_filter(client, ids):
     add_tx(client, ids, category="Groceries", amount=100, day="2026-03-10")
     add_tx(client, ids, category="Groceries", amount=100, day="2026-04-10")
     add_tx(client, ids, category="Salary", kind="income", amount=900, day="2026-03-11")
-    r = client.post("/api/transactions/bulk-delete", json={"matching": {"start": "2026-03-01", "end": "2026-03-31", "kind": "expense"}})
+    march = {"start": "2026-03-01", "end": "2026-03-31", "kind": "expense"}
+    r = client.post("/api/transactions/bulk-delete", json={"matching": march})
     assert r.json() == {"deleted": 1}
     assert client.get("/api/transactions").json()["total"] == 2
 

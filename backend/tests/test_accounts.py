@@ -40,7 +40,8 @@ def test_reset_one_account_to_zero(client, ids):
     other = client.post("/api/accounts", json={"name": "Cash", "kind": "cash", "opening_balance": 5000}).json()
     client.put(f"/api/accounts/{ids['account']}", json={"name": "Main", "kind": "checking", "opening_balance": 10000})
     add_tx(client, ids, amount=1500)
-    client.post("/api/transactions", json={"account_id": other["id"], "kind": "expense", "amount": 700, "occurred_on": "2026-03-10", "note": ""})
+    body = {"account_id": other["id"], "kind": "expense", "amount": 700, "occurred_on": "2026-03-10", "note": ""}
+    client.post("/api/transactions", json=body)
 
     assert client.post(f"/api/accounts/{ids['account']}/reset", json={}).status_code == 422
     r = client.post(f"/api/accounts/{ids['account']}/reset", json={"confirm": True})
