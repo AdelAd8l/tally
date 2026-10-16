@@ -5,13 +5,13 @@ from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..limits import MAX_CATEGORIES, MAX_TRANSACTIONS, ensure_room, room_left
 from ..models import Account, Category, Transaction, User
-from ..schemas import ImportResult, TransactionIn, TransactionOut, TransactionPage
+from ..schemas import BulkDelete, DeleteAll, Deleted, ImportResult, TransactionIn, TransactionOut, TransactionPage
 from ..security import current_user
 from .deps import get_owned
 
@@ -116,6 +116,41 @@ def update_transaction(
 def delete_transaction(tx_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
     db.delete(get_owned(db, Transaction, tx_id, user))
     db.commit()
+
+
+@router.post("/bulk-delete", response_model=Deleted)
+def bulk_delete(data: BulkDelete, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Delete the ticked transactions, or every transaction matching the filters on the screen.
+
+    Only the signed-in person's own transactions are ever touched; ids that are not theirs are ignored.
+    """
+    if (data.ids is None) == (data.matching is None):
+        raise HTTPException(422, "Send either 'ids' or 'matching'")
+    deleted = 0
+    if data.ids is not None:
+        ids = list(dict.fromkeys(data.ids))
+        for i in range(0, len(ids), 500):
+            result = db.execute(
+                delete(Transaction).where(Transaction.user_id == user.id, Transaction.id.in_(ids[i : i + 500]))
+            )
+            deleted += result.rowcount or 0
+    else:
+        f = data.matching
+        wanted = filtered(user, f.start, f.end, f.account_id, f.category_id, f.kind, f.q).with_only_columns(Transaction.id)
+        result = db.execute(delete(Transaction).where(Transaction.user_id == user.id, Transaction.id.in_(wanted)))
+        deleted = result.rowcount or 0
+    db.commit()
+    return Deleted(deleted=deleted)
+
+
+@router.post("/delete-all", response_model=Deleted)
+def delete_all(data: DeleteAll, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Delete every transaction of the signed-in person (all months, all accounts). Accounts and categories stay."""
+    if not data.confirm:
+        raise HTTPException(422, "Confirmation is required")
+    result = db.execute(delete(Transaction).where(Transaction.user_id == user.id))
+    db.commit()
+    return Deleted(deleted=result.rowcount or 0)
 
 
 # ---- CSV -----------------------------------------------------------------------

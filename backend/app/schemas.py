@@ -170,6 +170,32 @@ class ImportResult(BaseModel):
     created_categories: list[str]
 
 
+class TransactionFilter(BaseModel):
+    """The same filters as the transactions list: 'everything that matches what is on the screen'."""
+
+    start: date | None = None
+    end: date | None = None
+    account_id: int | None = None
+    category_id: int | None = Field(default=None, description="0 = uncategorized")
+    kind: Literal["expense", "income"] | None = None
+    q: str | None = Field(default=None, max_length=100)
+
+
+class BulkDelete(BaseModel):
+    """Delete the ticked transactions (ids) or everything matching a filter. Exactly one of the two."""
+
+    ids: list[int] | None = Field(default=None, max_length=5000)
+    matching: TransactionFilter | None = None
+
+
+class DeleteAll(BaseModel):
+    confirm: bool = False
+
+
+class Deleted(BaseModel):
+    deleted: int
+
+
 # ---- budgets -------------------------------------------------------------------
 
 

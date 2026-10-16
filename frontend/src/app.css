@@ -2207,3 +2207,144 @@ code {
   border-color: var(--danger);
   filter: brightness(1.08);
 }
+
+/* ---- the app's own checkbox, and picking several transactions ------------------- */
+
+.check {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.check input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.check-box {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: 5px;
+  background: var(--field);
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.check-box svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.check-box .tick,
+.check-box .dash {
+  opacity: 0;
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  transition:
+    stroke-dashoffset 0.16s ease,
+    opacity 0.1s;
+}
+
+.check:hover .check-box {
+  border-color: var(--accent);
+}
+
+.check input:focus-visible + .check-box {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.check input:checked + .check-box,
+.check input:indeterminate + .check-box {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.check input:checked + .check-box .tick,
+.check input:indeterminate:not(:checked) + .check-box .dash {
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+
+.check input:disabled,
+.tx-pick.is-locked {
+  cursor: default;
+}
+
+.check input:disabled + .check-box {
+  opacity: 0.6;
+}
+
+.day-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* a transaction row while picking: tick box + the usual row; the whole line is the target */
+.tx-pick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline-start: 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.tx-pick .tx-row {
+  flex: 1;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.tx-pick:hover,
+.tx-pick.is-picked {
+  background: var(--track);
+}
+
+.tx-pick.is-picked {
+  background: var(--accent-soft);
+}
+
+.select-bar {
+  position: sticky;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.14);
+}
+
+.select-count {
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+/* while picking, the floating "add" button would sit on top of the action bar */
+body:has(.select-bar) .fab {
+  display: none;
+}

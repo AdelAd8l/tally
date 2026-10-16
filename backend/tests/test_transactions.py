@@ -1,6 +1,8 @@
 import io
 
-from .conftest import add_tx
+from fastapi.testclient import TestClient
+
+from .conftest import add_tx, signup
 
 
 def test_crud(client, ids):
@@ -123,3 +125,49 @@ def test_import_survives_odd_files(client, ids):
     for amount in (b"Infinity", b"NaN", b"1e30"):
         r = send(b"date,amount\n2026-01-01," + amount + b"\n")
         assert r.status_code == 422 and "Line 2" in r.json()["detail"], amount
+
+
+def test_bulk_delete_by_ids_only_touches_my_transactions(client, ids):
+    a = add_tx(client, ids, amount=100)
+    b = add_tx(client, ids, amount=200)
+    c = add_tx(client, ids, amount=300)
+    r = client.post("/api/transactions/bulk-delete", json={"ids": [a["id"], b["id"], a["id"], 999999]})
+    assert r.status_code == 200 and r.json() == {"deleted": 2}
+    left = client.get("/api/transactions").json()
+    assert [t["id"] for t in left["items"]] == [c["id"]]
+
+    # somebody else's transaction cannot be deleted by id
+    other = TestClient(client.app)
+    signup(other, email="bob@example.com")
+    other_account = other.get("/api/accounts").json()[0]["id"]
+    mine = other.post("/api/transactions", json={"account_id": other_account, "kind": "expense", "amount": 500, "occurred_on": "2026-03-10", "note": ""}).json()
+    assert client.post("/api/transactions/bulk-delete", json={"ids": [mine["id"]]}).json() == {"deleted": 0}
+    assert other.get("/api/transactions").json()["total"] == 1
+
+
+def test_bulk_delete_matching_a_filter(client, ids):
+    add_tx(client, ids, category="Groceries", amount=100, day="2026-03-10")
+    add_tx(client, ids, category="Groceries", amount=100, day="2026-04-10")
+    add_tx(client, ids, category="Salary", kind="income", amount=900, day="2026-03-11")
+    r = client.post("/api/transactions/bulk-delete", json={"matching": {"start": "2026-03-01", "end": "2026-03-31", "kind": "expense"}})
+    assert r.json() == {"deleted": 1}
+    assert client.get("/api/transactions").json()["total"] == 2
+
+
+def test_bulk_delete_needs_exactly_one_selector(client, ids):
+    add_tx(client, ids)
+    assert client.post("/api/transactions/bulk-delete", json={}).status_code == 422
+    assert client.post("/api/transactions/bulk-delete", json={"ids": [1], "matching": {}}).status_code == 422
+    assert client.get("/api/transactions").json()["total"] == 1
+
+
+def test_delete_all_needs_confirmation_and_keeps_accounts_and_categories(client, ids):
+    for _ in range(3):
+        add_tx(client, ids)
+    assert client.post("/api/transactions/delete-all", json={}).status_code == 422
+    assert client.post("/api/transactions/delete-all", json={"confirm": False}).status_code == 422
+    assert client.get("/api/transactions").json()["total"] == 3
+    r = client.post("/api/transactions/delete-all", json={"confirm": True})
+    assert r.status_code == 200 and r.json() == {"deleted": 3}
+    assert client.get("/api/transactions").json()["total"] == 0
+    assert client.get("/api/accounts").json() and client.get("/api/categories").json()

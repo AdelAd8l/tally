@@ -91,7 +91,7 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
   }
   // Account and notification calls need the server's answer, and a file upload can't be
   // stored for later: these never go to the outbox. Everything else can wait for a signal.
-  if (['/auth/', '/push/', '/admin/'].some((p) => path.startsWith(p)) || body instanceof FormData) {
+  if (['/auth/', '/push/', '/admin/', '/transactions/bulk-', '/transactions/delete-all'].some((p) => path.startsWith(p)) || body instanceof FormData) {
     return send<T>(method, path, body, query)
   }
   return write<T>(method, path, body)
@@ -132,6 +132,10 @@ export const api = {
     return request<{ imported: number; created_categories: string[] }>('POST', '/transactions/import', form)
   },
   exportUrl: (query: Query) => withQuery('/api/transactions/export', query),
+  bulkDeleteTransactions: (
+    body: { ids: number[] } | { matching: { start?: string; end?: string; account_id?: number; category_id?: number; kind?: string; q?: string } },
+  ) => request<{ deleted: number }>('POST', '/transactions/bulk-delete', body),
+  deleteAllTransactions: () => request<{ deleted: number }>('POST', '/transactions/delete-all', { confirm: true }),
 
   budgets: (month: string) => request<Budget[]>('GET', '/budgets', undefined, { month }),
   saveBudget: (category_id: number, amount: number) => request<Budget>('PUT', '/budgets', { category_id, amount }),
