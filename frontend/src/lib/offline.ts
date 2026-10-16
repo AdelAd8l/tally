@@ -12,8 +12,9 @@
 import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
 
-import type { Account, Budget, Category, MonthTotal, Overview, Transaction, TransactionPage } from './api'
+import type { Account, Budget, Category, Insights, MonthTotal, Overview, Transaction, TransactionPage, User } from './api'
 import { ApiError, NetworkError, send } from './http'
+import { todayISO } from './format'
 
 interface Entry {
   id: string
@@ -94,6 +95,9 @@ const retryable = (e: unknown) => e instanceof NetworkError || (e instanceof Api
 
 let nextTemp = -Date.now()
 
+/** A temporary id for something created offline (later entries can already refer to it). */
+export const newTempId = () => nextTemp--
+
 export async function write<T>(method: string, path: string, body?: unknown): Promise<T> {
   const m = method as Entry['method']
   if (load().length === 0 && navigator.onLine) {
@@ -111,6 +115,23 @@ export async function write<T>(method: string, path: string, body?: unknown): Pr
   const result = applyToCache(entry)
   void syncNow()
   return result as T
+}
+
+/** Queue many changes with ONE save (an imported file would otherwise rewrite the whole outbox per row).
+ * Always queued, even online: the caller already knows it is offline, or wants them sent in order. */
+export function writeMany(items: { method: string; path: string; body?: unknown; tempId?: number }[]): unknown[] {
+  const entries: Entry[] = items.map((x) => ({
+    id: crypto.randomUUID(),
+    method: x.method as Entry['method'],
+    path: x.path,
+    body: x.body,
+    tempId: x.tempId,
+    at: Date.now(),
+  }))
+  save([...load(), ...entries])
+  const results = entries.map((e) => applyToCache(e))
+  void syncNow()
+  return results
 }
 
 // ---- optimistic cache updates -------------------------------------------------------
@@ -202,6 +223,83 @@ function updateLists(before: Transaction | undefined, after: Transaction | undef
   }
 }
 
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const monthIndex = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5, 7)) - 1
+
+/** Keep the Reports page's numbers in step with one transaction added (sign 1) or removed (sign -1).
+ * Everything is exact except the weekday averages, which are rounded back to a whole amount. */
+function applyInsights(tx: Transaction, sign: 1 | -1) {
+  const month = monthOf(tx.occurred_on)
+  const expense = tx.kind === 'expense'
+  const amount = tx.amount * sign
+  const dayIndex = Number(tx.occurred_on.slice(8, 10)) - 1
+  const weekday = (new Date(`${tx.occurred_on}T00:00:00`).getDay() + 6) % 7 // Monday = 0
+  const today = todayISO()
+
+  for (const [key, ins] of cached<Insights>(['insights'])) {
+    if (!ins || !ins.months.length) continue
+    const first = ins.months[0].month
+    const last = ins.months[ins.months.length - 1].month
+    const inRange = month >= first && month <= last
+    const next: Insights = {
+      ...ins,
+      months: ins.months.map((m) => {
+        if (m.month === month) {
+          return {
+            ...m,
+            income: m.income + (expense ? 0 : amount),
+            expense: m.expense + (expense ? amount : 0),
+            net_worth: m.net_worth + signed(tx) * sign,
+          }
+        }
+        // net worth carries forward: every later month (or every month, when the change is before the range) moves too
+        return month < m.month ? { ...m, net_worth: m.net_worth + signed(tx) * sign } : m
+      }),
+    }
+
+    if (inRange) {
+      const accounts = ins.accounts.map((a) => ({ ...a }))
+      let row = accounts.find((a) => a.account_id === tx.account_id)
+      if (!row) {
+        row = { account_id: tx.account_id, income: 0, expense: 0 }
+        accounts.push(row)
+        accounts.sort((a, b) => a.account_id - b.account_id)
+      }
+      if (expense) row.expense += amount
+      else row.income += amount
+      next.accounts = accounts
+
+      if (expense) {
+        const rows = ins.categories.map((c) => ({ ...c }))
+        const hit = rows.find((c) => c.month === month && c.category_id === tx.category_id)
+        if (hit) hit.amount += amount
+        else rows.push({ month, category_id: tx.category_id, amount })
+        next.categories = rows
+          .filter((c) => c.amount > 0)
+          .sort((a, b) => a.month.localeCompare(b.month) || b.amount - a.amount)
+
+        // average per weekday: the days of that weekday the range has had so far
+        const rangeStart = `${first}-01`
+        const lastDay = new Date(Number(last.slice(0, 4)), Number(last.slice(5, 7)), 0).getDate()
+        const stop = `${last}-${pad2(lastDay)}` < today ? `${last}-${pad2(lastDay)}` : today
+        let n = 0
+        for (let d = new Date(`${rangeStart}T00:00:00`); `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` <= stop; d.setDate(d.getDate() + 1)) {
+          if ((d.getDay() + 6) % 7 === weekday) n++
+        }
+        if (n) next.weekdays = ins.weekdays.map((v, i) => (i === weekday ? Math.max(0, Math.round(v + amount / n)) : v))
+      }
+    }
+
+    // the pace line: running spending through the month (this month, and the one before it)
+    if (expense) {
+      const addRunning = (arr: number[]) => arr.map((v, i) => (i >= dayIndex ? v + amount : v))
+      if (month === ins.pace.month) next.pace = { ...next.pace, current: addRunning(ins.pace.current) }
+      else if (monthIndex(month) === monthIndex(ins.pace.month) - 1) next.pace = { ...next.pace, previous: addRunning(ins.pace.previous) }
+    }
+    client!.setQueryData(key, next)
+  }
+}
+
 /** Add (sign 1) or take away (sign -1) one transaction's effect on balances and summaries. */
 function applyMoney(tx: Transaction, sign: 1 | -1) {
   const month = monthOf(tx.occurred_on)
@@ -216,6 +314,7 @@ function applyMoney(tx: Transaction, sign: 1 | -1) {
       list?.map((b) => (b.category_id === tx.category_id ? { ...b, spent: b.spent + amount } : b)),
     )
   }
+  applyInsights(tx, sign)
   for (const [key, o] of cached<Overview>(['overview'])) {
     if (!o) continue
     const m = key[1] as string
@@ -261,6 +360,115 @@ function upsert<T extends { id: number }>(key: QueryKey, id: number, item: T | u
   })
 }
 
+/** Every transaction any cached list holds (a month's list, a search, the recent six…), once each. */
+function allCachedTransactions(): Transaction[] {
+  const seen = new Map<number, Transaction>()
+  for (const [, data] of cached<TxList>(['transactions'])) {
+    const pages = data ? ('pages' in data ? data.pages : [data]) : []
+    for (const page of pages) for (const tx of page.items ?? []) seen.set(tx.id, tx)
+  }
+  return [...seen.values()]
+}
+
+/** What this device can export without a connection: the saved transactions between two dates, and the
+ * month's real total when a complete month list was saved (so a partial copy can be told apart). */
+export function cachedTransactionsBetween(start?: string, end?: string): { items: Transaction[]; total: number | null } {
+  const items = allCachedTransactions().filter((tx) => (!start || tx.occurred_on >= start) && (!end || tx.occurred_on <= end))
+  let total: number | null = null
+  for (const [key, data] of cached<TxList>(['transactions'])) {
+    const f = (key[2] ?? {}) as Record<string, string>
+    if (key[1] !== 'list' || f.q || f.kind || f.account_id || f.category_id || f.start !== start || f.end !== end) continue
+    const pages = data ? ('pages' in data ? data.pages : [data]) : []
+    if (pages.length) total = pages[0].total
+  }
+  return { items, total }
+}
+
+function removeTransactions(victims: Transaction[]) {
+  for (const tx of victims) {
+    applyMoney(tx, -1)
+    updateLists(tx, undefined)
+  }
+}
+
+/** The ticked transactions, or everything matching a filter. Only what this device has saved can be taken off
+ * the screen now; the rest disappears when the change reaches the server. */
+function applyBulkDelete(body: Record<string, unknown>) {
+  let victims: Transaction[]
+  if (Array.isArray(body.ids)) {
+    victims = (body.ids as number[]).map(findTransaction).filter((x): x is Transaction => !!x)
+  } else {
+    const f = Object.fromEntries(
+      Object.entries((body.matching ?? {}) as Record<string, unknown>)
+        .filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)]),
+    )
+    victims = allCachedTransactions().filter((tx) => inList(['transactions', 'list', f], tx))
+  }
+  removeTransactions(victims)
+  return { deleted: victims.length }
+}
+
+/** Start from the beginning: no transactions at all, and (for `openings`) every opening balance back to 0. */
+function applyClearAll(openings: boolean) {
+  const accounts = client!.getQueryData<Account[]>(['accounts']) ?? []
+  const opening = accounts.reduce((sum, a) => sum + a.opening_balance, 0)
+  const empty = (page: Page): Page => ({ ...page, items: [], total: 0, income: 0, expense: 0 })
+  for (const [key, data] of cached<TxList>(['transactions'])) {
+    if (!data) continue
+    client!.setQueryData(key, 'pages' in data ? { ...data, pages: data.pages.map(empty) } : empty(data))
+  }
+  client!.setQueryData<Account[]>(['accounts'], (list) =>
+    list?.map((a) => ({ ...a, opening_balance: openings ? 0 : a.opening_balance, balance: openings ? 0 : a.opening_balance })),
+  )
+  const worth = openings ? 0 : opening
+  for (const [key, o] of cached<Overview>(['overview'])) {
+    if (!o) continue
+    client!.setQueryData(key, {
+      ...o,
+      income: 0,
+      expense: 0,
+      previous_income: 0,
+      previous_expense: 0,
+      net_worth: worth,
+      by_category: [],
+      daily: o.daily.map((d) => ({ ...d, expense: 0 })),
+    })
+  }
+  for (const [key, list] of cached<MonthTotal[]>(['trend'])) {
+    client!.setQueryData(key, list?.map((row) => ({ ...row, income: 0, expense: 0 })))
+  }
+  for (const [key, list] of cached<Budget[]>(['budgets'])) {
+    client!.setQueryData(key, list?.map((b) => ({ ...b, spent: 0 })))
+  }
+  for (const [key, ins] of cached<Insights>(['insights'])) {
+    if (!ins) continue
+    client!.setQueryData(key, {
+      ...ins,
+      months: ins.months.map((m) => ({ ...m, income: 0, expense: 0, net_worth: worth })),
+      categories: [],
+      accounts: ins.accounts.map((a) => ({ ...a, income: 0, expense: 0 })),
+      weekdays: ins.weekdays.map(() => 0),
+      pace: { ...ins.pace, current: ins.pace.current.map(() => 0), previous: ins.pace.previous.map(() => 0) },
+    })
+  }
+  return { deleted: allCachedTransactions().length }
+}
+
+/** One account back to zero: its transactions go and its opening balance is cleared. */
+function applyResetAccount(id: number) {
+  const account = (client!.getQueryData<Account[]>(['accounts']) ?? []).find((a) => a.id === id)
+  removeTransactions(allCachedTransactions().filter((tx) => tx.account_id === id))
+  if (!account) return undefined
+  const after = { ...(client!.getQueryData<Account[]>(['accounts']) ?? []).find((a) => a.id === id)!, opening_balance: 0 }
+  after.balance = after.balance - account.opening_balance
+  upsert(['accounts'], id, after)
+  for (const [key, o] of cached<Overview>(['overview'])) {
+    if (o) client!.setQueryData(key, { ...o, net_worth: o.net_worth - account.opening_balance })
+  }
+  return after
+}
+
 /** Show a queued change on screen and return what the server would probably answer. */
 function applyToCache(entry: Entry): unknown {
   if (!client) return entry.body
@@ -270,7 +478,15 @@ function applyToCache(entry: Entry): unknown {
   const removing = entry.method === 'DELETE'
 
   switch (resource) {
+    case 'auth': {
+      // a profile / settings change: the screen uses the new values straight away
+      const merged = { ...client.getQueryData<User>(['me']), ...body } as User
+      client.setQueryData(['me'], merged)
+      return merged
+    }
     case 'transactions': {
+      if (rawId === 'bulk-delete') return applyBulkDelete(body)
+      if (rawId === 'delete-all') return applyClearAll(false)
       const before = entry.method === 'POST' ? undefined : findTransaction(id)
       const after = removing ? undefined : ({ ...before, ...body, id } as Transaction)
       if (before) applyMoney(before, -1)
@@ -279,6 +495,8 @@ function applyToCache(entry: Entry): unknown {
       return after
     }
     case 'accounts': {
+      if (rawId === 'reset-all') return applyClearAll(true)
+      if (entry.path.endsWith('/reset')) return applyResetAccount(Number(rawId)) // (a POST gets a temporary id; this one is the account's own)
       const list = client.getQueryData<Account[]>(['accounts']) ?? []
       const before = list.find((a) => a.id === id)
       const opening = (body.opening_balance as number) ?? before?.opening_balance ?? 0
@@ -327,6 +545,8 @@ function remap(entry: Entry, ids: Map<number, number>): Entry {
         typeof v === 'number' && v < 0 && k.endsWith('_id') && ids.has(v) ? ids.get(v) : v,
       )
     : entry.body
+  // a queued "delete these" lists transactions by id: some may have been created offline just before
+  if (body && Array.isArray(body.ids)) body.ids = body.ids.map((id: number) => (ids.has(id) ? ids.get(id) : id))
   return { ...entry, path, body }
 }
 

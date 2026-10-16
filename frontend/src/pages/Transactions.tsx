@@ -1,7 +1,8 @@
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useMemo, useState } from 'react'
 
 import Check from '../components/Check'
+import ExportButton from '../components/ExportButton'
 import Icon from '../components/Icon'
 import Modal from '../components/Modal'
 import MonthPicker from '../components/MonthPicker'
@@ -12,9 +13,11 @@ import TypedConfirm from '../components/TypedConfirm'
 import TransactionRow from '../components/TransactionRow'
 import { api, type Transaction } from '../lib/api'
 import { ask } from '../lib/confirm'
+import { importOffline } from '../lib/csv'
+import { NetworkError } from '../lib/http'
 import { dayHeading, monthBounds, monthName } from '../lib/format'
 import { UNCATEGORIZED, useAccounts, useCategories, useComposer, useMonth, useRefreshMoney } from '../lib/hooks'
-import { displayName, t } from '../lib/i18n'
+import { displayName, serverError, t } from '../lib/i18n'
 
 const PAGE = 100
 
@@ -186,9 +189,9 @@ export default function Transactions() {
         <button className="btn" onClick={() => setImporting(true)}>
           <Icon name="upload" size={16} /> {t('txs.import')}
         </button>
-        <a className="btn" href={api.exportUrl({ start, end })} download>
+        <ExportButton start={start} end={end}>
           <Icon name="download" size={16} /> {t('txs.export')}
-        </a>
+        </ExportButton>
         <button
           className={`btn${selecting ? ' btn-primary' : ''}`}
           aria-pressed={selecting}
@@ -335,15 +338,15 @@ function DeleteAllDialog({ open, onClose, onDone }: { open: boolean; onClose: ()
       open={open}
       onClose={onClose}
       title={t('txs.deleteAllTitle')}
-      body={t('txs.deleteAllBody', { n: count ?? '…' })}
+      body={count === undefined && !navigator.onLine ? t('txs.deleteAllBodyOffline') : t('txs.deleteAllBody', { n: count ?? '…' })}
       word={t('txs.deleteAllWord')}
       goLabel={t('txs.deleteAllGo')}
       emptyText={count === 0 ? t('txs.deleteAllNone') : undefined}
-      ready={count !== undefined}
+      ready={count !== undefined || !navigator.onLine}
       extra={
-        <a className="btn btn-sm" href={api.exportUrl({})} download>
+        <ExportButton className="btn btn-sm">
           <Icon name="download" size={16} /> {t('txs.deleteAllBackup')}
-        </a>
+        </ExportButton>
       }
       onConfirm={async () => {
         await api.deleteAllTransactions()
@@ -370,8 +373,25 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const [accountId, setAccountId] = useState('')
   const [file, setFile] = useState<File | null>(null)
 
+  const qc = useQueryClient()
   const upload = useMutation({
-    mutationFn: () => api.importTransactions(Number(accountId || accounts[0]?.id), file!),
+    mutationFn: async () => {
+      const id = Number(accountId || accounts[0]?.id)
+      if (navigator.onLine) {
+        try {
+          return { ...(await api.importTransactions(id, file!)), queued: false }
+        } catch (e) {
+          if (!(e instanceof NetworkError)) throw e // a real answer from the server: show it
+        }
+      }
+      // no connection: read the file here; its rows wait in the outbox and are sent later
+      try {
+        return { ...importOffline(qc, id, await file!.text(), file!.size), queued: true }
+      } catch (e) {
+        const message = (e as Error).message
+        throw new Error(message === 'TOO_BIG_OFFLINE' ? t('import.tooBigOffline') : serverError(message))
+      }
+    },
     onSuccess: () => refresh(),
   })
 
@@ -391,6 +411,7 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
               <> {t('import.newCategories', { list: upload.data.created_categories.join('، ') })}</>
             )}
           </p>
+          {upload.data.queued && <p className="muted">{t('import.queued')}</p>}
           <footer className="modal-actions">
             <span className="spacer" />
             <button className="btn btn-primary" onClick={close}>

@@ -89,11 +89,11 @@ async function request<T>(method: string, path: string, body?: unknown, query?: 
     if (pendingCount() && navigator.onLine) await syncNow()
     return send<T>(method, path, body, query)
   }
-  // Account and notification calls need the server's answer, and a file upload can't be
-  // stored for later: these never go to the outbox. Everything else can wait for a signal.
-  if (['/auth/', '/push/', '/admin/', '/transactions/bulk-', '/transactions/delete-all', '/accounts/reset-all'].some((p) => path.startsWith(p)) ||
-    /^\/accounts\/\d+\/reset$/.test(path) ||
-    body instanceof FormData) {
+  // Sign-in, password, notification and admin calls need the server's answer, and a file upload can't be
+  // stored for later: these never go to the outbox. Everything else can wait for a signal, including
+  // profile and settings changes (PATCH /auth/me), deleting several things, and zeroing accounts.
+  const profile = method === 'PATCH' && path === '/auth/me'
+  if ((!profile && ['/auth/', '/push/', '/admin/'].some((p) => path.startsWith(p))) || body instanceof FormData) {
     return send<T>(method, path, body, query)
   }
   return write<T>(method, path, body)

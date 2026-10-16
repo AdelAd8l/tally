@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import ColorField from '../components/ColorField'
+import ExportButton from '../components/ExportButton'
 import Modal from '../components/Modal'
 import Money from '../components/Money'
 import PageHeader from '../components/PageHeader'
@@ -93,15 +94,11 @@ function ZeroAllDialog({ open, onClose }: { open: boolean; onClose: () => void }
       open={open}
       onClose={onClose}
       title={t('accounts.zeroAllTitle')}
-      body={t('accounts.zeroAllBody', { n: count ?? '…' })}
+      body={count === undefined && !navigator.onLine ? t('accounts.zeroAllBodyOffline') : t('accounts.zeroAllBody', { n: count ?? '…' })}
       word={t('accounts.zeroWord')}
       goLabel={t('accounts.zeroAllGo')}
-      ready={count !== undefined}
-      extra={
-        <a className="btn btn-sm" href={api.exportUrl({})} download>
-          {t('txs.deleteAllBackup')}
-        </a>
-      }
+      ready={count !== undefined || !navigator.onLine}
+      extra={<ExportButton className="btn btn-sm">{t('txs.deleteAllBackup')}</ExportButton>}
       onConfirm={async () => {
         await api.resetAllAccounts()
         await refresh()
